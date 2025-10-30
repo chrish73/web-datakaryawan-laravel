@@ -45,11 +45,22 @@
                 <th>Nilai Kompetensi</th>
                 <th>Nilai Behavior</th>
                 <th>Talent Charter</th>
-                <th>Eligible</th>
+                <th>Status</th>
             </tr>
         </thead>
         <tbody>
             @forelse($employees as $employee)
+                {{-- Tentukan kelas warna baris berdasarkan status --}}
+                @php
+                    $rowClass = '';
+                    // Menggunakan kolom 'status_eligibility' sesuai dengan perbaikan terakhir di Imports
+                    if ($employee->status_eligibility === 'Eligible') {
+                        $rowClass = 'table-success'; // Warna hijau untuk Eligible
+                    } elseif ($employee->status_eligibility === 'Not Eligible') {
+                        $rowClass = 'table-danger'; // Warna merah untuk Not Eligible
+                    }
+                @endphp
+
                 <tr>
                     <td>{{ $employee->nik }}</td>
                     <td>{{ $employee->nama }}</td>
@@ -59,11 +70,11 @@
                     <td>{{ $employee->nilai_kompetensi }}</td>
                     <td>{{ $employee->nilai_behavior }}</td>
                     <td>{{ $employee->tc }}</td>
-                    <td>{{ $employee->status}}</td>
+                    <td class="{{ $rowClass }}">{{ $employee->status_eligibility}}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="text-center">Tidak ada data</td>
+                    <td colspan="9" class="text-center">Tidak ada data</td>
                 </tr>
             @endforelse
         </tbody>

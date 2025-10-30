@@ -11,6 +11,7 @@ return new class extends Migration {
             $table->id();
             $table->string('nik')->unique();
             $table->string('nama');
+            $table->integer('usia')->nullable();
             $table->string('nama_unit');
             $table->string('lama_band_posisi')->nullable();
             $table->string('nilai_kinerja')->nullable();

@@ -8,6 +8,9 @@ use Maatwebsite\Excel\Concerns\ToCollection;
 
 class EmployeesImport implements ToCollection
 {
+
+    private array $importedNiks = [];
+
     public function collection(Collection $rows)
     {
         foreach ($rows as $index => $row) {
@@ -16,6 +19,8 @@ class EmployeesImport implements ToCollection
 
             $nik = trim($row[2] ?? '');
             if (empty($nik)) continue;
+
+            $this->importedNiks[] = $nik;
 
             $nilaiKinerja = strtoupper(trim($row[44] ?? ''));
             $nilaiKompetensi = strtoupper(trim($row[46] ?? ''));
@@ -26,16 +31,22 @@ class EmployeesImport implements ToCollection
                 ['nik' => $nik],
                 [
                     'nama'              => $row[3] ?? null,
+                    'usia'              => $row[6] ?? null,
                     'nama_unit'         => $row[28] ?? null,
                     'lama_band_posisi'  => $row[40] ?? null,
                     'nilai_kinerja'     => $nilaiKinerja,
                     'nilai_kompetensi'  => $nilaiKompetensi,
                     'nilai_behavior'    => $row[48] ?? null,
                     'tc'                => $row[68] ?? null,
-                    // 'status'            => $status,
+                    'status_eligibility'=> $status,
                 ]
             );
         }
+    }
+
+    public function getImportedNiks(): array
+    {
+        return $this->importedNiks;
     }
 
     private function hitungStatus($nilaiKinerja, $nilaiKompetensi)
@@ -55,7 +66,7 @@ class EmployeesImport implements ToCollection
 
         if ($p <= 3 && $k <= 3) {
             return 'Eligible';
-        } elseif ($p >= 4 && $k >= 4) {
+        } elseif ($p >= 4 || $k >= 4) {
             return 'Not Eligible';
         } else {
             return 'Perlu Review';

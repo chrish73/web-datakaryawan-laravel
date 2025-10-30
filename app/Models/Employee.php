@@ -12,12 +12,13 @@ class Employee extends Model
     protected $fillable = [
         'nik',
         'nama',
+        'usia',
         'nama_unit',
         'lama_band_posisi',
         'nilai_kinerja',
         'nilai_kompetensi',
         'nilai_behavior',
         'tc',
-        'status',
+        'status_eligibility',
     ];
 }
