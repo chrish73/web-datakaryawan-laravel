@@ -14,6 +14,7 @@ class Employee extends Model
         'bulan',
         'nik',
         'nama',
+        'tgl_lahir',
         'jenis_kelamin',
         'nama_agama',
         'usia',

@@ -5,12 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+    <title>Unit dan band posisi</title>
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
 </head>
 
 <body>
-    @extends('layouts.app') {{-- Sesuaikan dengan layout Anda --}}
+    @extends('layouts.app')
 
     @section('content')
         <nav class="navbar navbar-expand-lg navbar-dark">

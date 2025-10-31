@@ -36,6 +36,7 @@ class EmployeesImport implements ToCollection
                     'tahun'                 => $row[0] ?? null,
                     'bulan'                 => $row[1] ?? null,
                     'nama'                  => $row[3] ?? null,
+                    // 'tgl_lahir'             => $row[6] ?? null,
                     'jenis_kelamin'         => $row[4] ?? null,
                     'nama_agama'            => $row[5] ?? null,
                     'usia'                  => $row[6] ?? null,

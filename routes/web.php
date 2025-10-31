@@ -30,3 +30,6 @@ Route::get('/employees/band-duration-data', [EmployeeController::class, 'bandPos
 Route::get('/employees/band', function () {
     return view('employees.band_duration_chart');
 })->name('employees.band_duration_chart');
+
+
+Route::post('/employees/import-birthday', [EmployeeController::class, 'importBirthday'])->name('employees.import_birthday');
