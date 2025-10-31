@@ -1,0 +1,137 @@
+body {
+    background-color: #f0f2f5;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+.navbar {
+    background-color: rgb(219, 219, 219);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.418);
+}
+.navbar-brand,
+.navbar-nav,
+.nav-link {
+    color: #000000 !important;
+    transition: color 0.3s ease;
+    gap: 10px;
+}
+.nav-item{
+    /* border: 1px solid black; */
+    border-radius: 7px;
+    background-color: transparent;
+}
+.nav-item:hover,
+.nav-link:hover,
+.nav-link.active {
+    color: #1900ff !important;
+    font-weight: 400;
+    border-radius: 7px;
+    box-shadow: 0 4px 8px rgba(54, 0, 248, 0.541);
+    transition: transform 2s ease, box-shadow 0.2s ease;
+}
+.container {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    margin-top: 30px;
+    margin-bottom: 30px;
+}
+h3 {
+    color: #007bff;
+    border-bottom: 3px solid #007bff;
+    padding-bottom: 10px;
+    margin-bottom: 25px;
+    font-weight: 700;
+}
+
+/* --- STYLING FORM & TOMBOL --- */
+.btn-primary {
+    background-color: #28a745; /* Warna hijau untuk Import */
+    border-color: #28a745;
+    transition: background-color 0.3s, transform 0.2s;
+}
+.btn-primary:hover {
+    background-color: #1e7e34;
+    transform: translateY(-2px); /* Animasi hover: sedikit naik */
+}
+.btn-outline-secondary,
+.btn-outline-danger {
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* --- STYLING CARD KARYAWAN --- */
+.employee-card {
+    border: none; /* Hilangkan border default card */
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(7, 4, 219, 0.08);
+    margin-bottom: 20px;
+    overflow: hidden; /* Memastikan border-radius bekerja pada header */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.employee-card:hover {
+    transform: translateY(-5px); /* Sedikit naik saat hover */
+    box-shadow: 0 8px 20px rgba(3, 7, 248, 0.705); /* Bayangan lebih dalam */
+}
+.card-header-custom {
+    background: linear-gradient(
+        45deg,
+        #007bff,
+        #0056b3
+    ); /* Gradasi pada header card */
+    color: white;
+    padding: 15px 20px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.card-body-custom {
+    padding: 15px 20px;
+}
+.card-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px dashed #e0e0e0;
+    font-size: 0.95em;
+}
+.card-item:last-child {
+    border-bottom: none;
+}
+.card-item-label {
+    font-weight: 600;
+    color: #343a40;
+}
+.card-item-value {
+    color: #495057;
+    text-align: right;
+}
+
+/* Warna khusus untuk Status di Card */
+.card-status-eligible {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+.card-status-not-eligible {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+/* --- Pagination Styling --- */
+.pagination .page-item .page-link {
+    color: #007bff;
+    border-color: #dee2e6;
+}
+.pagination .page-item.active .page-link {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+.pagination .page-item.disabled .page-link {
+    color: #6c757d;
+}
