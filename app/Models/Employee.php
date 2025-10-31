@@ -79,7 +79,7 @@ class Employee extends Model
         'alamat_gedung',
         'kota_gedung',
         'unit',
-        'ket',
+        'tc',
         'status_eligibility'
     ];
 }

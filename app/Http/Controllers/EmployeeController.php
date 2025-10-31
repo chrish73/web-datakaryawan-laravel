@@ -31,7 +31,7 @@ class EmployeeController extends Controller
         ]);
 
         // Buat instance dari EmployeesImport
-        $import = new EmployeesImport;
+        $import = new EmployeesImport();
 
         try {
             // Jalankan proses import dan pass instance-nya
@@ -55,7 +55,7 @@ class EmployeeController extends Controller
         }
     }
 
-        public function bandPositionChartData()
+    public function bandPositionChartData()
     {
         // Mendapatkan semua data UNIT dan band_posisi, lalu menghitungnya
         $data = Employee::select('UNIT', 'band_posisi', DB::raw('count(*) as count'))
@@ -89,7 +89,7 @@ class EmployeeController extends Controller
         ]);
     }
 
-public function ageGroupChartData()
+    public function ageGroupChartData()
     {
         // Logika CASE untuk mengelompokkan usia
         $ageGroupCase = "CASE
@@ -178,123 +178,148 @@ public function ageGroupChartData()
             'data' => $chartData,
         ]);
     }
-
     public function importBirthday(Request $request)
-{
-    $request->validate([
-        'file' => 'required|mimes:csv,txt,xlsx,xls|max:4096',
-    ]);
+    {
+        $request->validate([
+            'file' => 'required|mimes:csv,txt,xlsx,xls|max:4096',
+        ]);
 
-    $import = new BirthdayImport;
+        $import = new BirthdayImport();
 
-    try {
-        Excel::import($import, $request->file('file'));
+        try {
+            Excel::import($import, $request->file('file'));
 
-        $updatedCount = count($import->getUpdatedNiks());
-        $notFoundCount = count($import->getNotFoundNiks());
+            $updatedCount = count($import->getUpdatedNiks());
+            $notFoundCount = count($import->getNotFoundNiks());
 
-        $message = "Berhasil update {$updatedCount} data ulang tahun.";
+            $message = "Berhasil update {$updatedCount} data ulang tahun.";
 
-        if ($notFoundCount > 0) {
-            $message .= " {$notFoundCount} NIK tidak ditemukan di database.";
+            if ($notFoundCount > 0) {
+                $message .= " {$notFoundCount} NIK tidak ditemukan di database.";
+            }
+
+            return redirect()->route('employees.index')->with('success', $message);
+
+        } catch (\Exception $e) {
+            return redirect()->route('employees.index')->with('error', 'Gagal import data ulang tahun: ' . $e->getMessage());
+        }
+    }
+
+    public function todayBirthdays()
+    {
+        $today = Carbon::today();
+
+        // Ambil karyawan yang ulang tahun hari ini (bulan dan tanggal sama)
+        $employees = Employee::whereNotNull('tgl_lahir')
+            ->whereRaw('MONTH(tgl_lahir) = ?', [$today->month])
+            ->whereRaw('DAY(tgl_lahir) = ?', [$today->day])
+            ->orderBy('nama')
+            ->get();
+
+        // Hitung umur untuk setiap karyawan
+        foreach ($employees as $employee) {
+            $birthDate = Carbon::parse($employee->tgl_lahir);
+            $employee->age = $birthDate->age;
         }
 
-        return redirect()->route('employees.index')->with('success', $message);
-
-    } catch (\Exception $e) {
-        return redirect()->route('employees.index')->with('error', 'Gagal import data ulang tahun: ' . $e->getMessage());
-    }
-}
-
-public function todayBirthdays()
-{
-    $today = Carbon::today();
-
-    // Ambil karyawan yang ulang tahun hari ini (bulan dan tanggal sama)
-    $employees = Employee::whereNotNull('tgl_lahir')
-        ->whereRaw('MONTH(tgl_lahir) = ?', [$today->month])
-        ->whereRaw('DAY(tgl_lahir) = ?', [$today->day])
-        ->orderBy('nama')
-        ->get();
-
-    // Hitung umur untuk setiap karyawan
-    foreach ($employees as $employee) {
-        $birthDate = Carbon::parse($employee->tgl_lahir);
-        $employee->age = $birthDate->age;
+        return view('employees.birthdays', compact('employees'));
     }
 
-    return view('employees.birthdays', compact('employees'));
-}
+    /**
+     * Get data ulang tahun hari ini untuk notifikasi (JSON)
+     */
+    public function getTodayBirthdaysNotification()
+    {
+        $today = Carbon::today();
 
-/**
- * Get data ulang tahun hari ini untuk notifikasi (JSON)
- */
-public function getTodayBirthdaysNotification()
-{
-    $today = Carbon::today();
+        $employees = Employee::whereNotNull('tgl_lahir')
+            ->whereRaw('MONTH(tgl_lahir) = ?', [$today->month])
+            ->whereRaw('DAY(tgl_lahir) = ?', [$today->day])
+            ->orderBy('nama')
+            ->get(['nik', 'nama', 'tgl_lahir', 'kota_lahir', 'nama_unit']);
 
-    $employees = Employee::whereNotNull('tgl_lahir')
-        ->whereRaw('MONTH(tgl_lahir) = ?', [$today->month])
-        ->whereRaw('DAY(tgl_lahir) = ?', [$today->day])
-        ->orderBy('nama')
-        ->get(['nik', 'nama', 'tgl_lahir', 'kota_lahir', 'nama_unit']);
-
-    // Hitung umur
-    foreach ($employees as $employee) {
-        $birthDate = Carbon::parse($employee->tgl_lahir);
-        $employee->age = $birthDate->age;
-    }
-
-    return response()->json([
-        'count' => $employees->count(),
-        'employees' => $employees
-    ]);
-}
-
-/**
- * Upcoming birthdays (7 hari ke depan)
- */
-public function upcomingBirthdays()
-{
-    $today = Carbon::today();
-    $nextWeek = Carbon::today()->addDays(7);
-
-    $employees = Employee::whereNotNull('tgl_lahir')
-        ->get()
-        ->filter(function($employee) use ($today, $nextWeek) {
+        // Hitung umur
+        foreach ($employees as $employee) {
             $birthDate = Carbon::parse($employee->tgl_lahir);
-            $thisBirthday = $birthDate->copy()->setYear($today->year);
+            $employee->age = $birthDate->age;
+        }
 
-            // Jika ulang tahun sudah lewat tahun ini, gunakan tahun depan
+        return response()->json([
+            'count' => $employees->count(),
+            'employees' => $employees
+        ]);
+    }
+
+    /**
+     * Upcoming birthdays (7 hari ke depan)
+     */
+    public function upcomingBirthdays()
+    {
+        $today = Carbon::today();
+        $nextWeek = Carbon::today()->addDays(7);
+
+        $employees = Employee::whereNotNull('tgl_lahir')
+            ->get()
+            ->filter(function ($employee) use ($today, $nextWeek) {
+                $birthDate = Carbon::parse($employee->tgl_lahir);
+                $thisBirthday = $birthDate->copy()->setYear($today->year);
+
+                // Jika ulang tahun sudah lewat tahun ini, gunakan tahun depan
+                if ($thisBirthday->lt($today)) {
+                    $thisBirthday->addYear();
+                }
+
+                return $thisBirthday->between($today, $nextWeek);
+            })
+            ->sortBy(function ($employee) use ($today) {
+                $birthDate = Carbon::parse($employee->tgl_lahir);
+                $thisBirthday = $birthDate->copy()->setYear($today->year);
+
+                if ($thisBirthday->lt($today)) {
+                    $thisBirthday->addYear();
+                }
+
+                return $thisBirthday->format('md');
+            });
+
+        // Hitung umur dan hari tersisa
+        foreach ($employees as $employee) {
+            $birthDate = Carbon::parse($employee->tgl_lahir);
+            $employee->age = $birthDate->age + 1; // Umur yang akan datang
+
+            $thisBirthday = $birthDate->copy()->setYear($today->year);
             if ($thisBirthday->lt($today)) {
                 $thisBirthday->addYear();
             }
-
-            return $thisBirthday->between($today, $nextWeek);
-        })
-        ->sortBy(function($employee) use ($today) {
-            $birthDate = Carbon::parse($employee->tgl_lahir);
-            $thisBirthday = $birthDate->copy()->setYear($today->year);
-
-            if ($thisBirthday->lt($today)) {
-                $thisBirthday->addYear();
-            }
-
-            return $thisBirthday->format('md');
-        });
-
-    // Hitung umur dan hari tersisa
-    foreach ($employees as $employee) {
-        $birthDate = Carbon::parse($employee->tgl_lahir);
-        $employee->age = $birthDate->age + 1; // Umur yang akan datang
-
-        $thisBirthday = $birthDate->copy()->setYear($today->year);
-        if ($thisBirthday->lt($today)) {
-            $thisBirthday->addYear();
+            $employee->days_until = $today->diffInDays($thisBirthday);
         }
-        $employee->days_until = $today->diffInDays($thisBirthday);
+
+        return view('employees.upcoming_birthdays', compact('employees'));
     }
 
-    return view('employees.upcoming_birthdays', compact('employees'));
-}
+
+    public function getAgeGroupDetails($unit, $group)
+    {
+        $ageRanges = [
+            '< 30'    => [0, 29],
+            '30 - 40' => [30, 40],
+            '41 - 50' => [41, 50],
+            '> 50'    => [51, 200],
+        ];
+
+        if (!isset($ageRanges[$group])) {
+            return response()->json([]);
+        }
+
+        [$minAge, $maxAge] = $ageRanges[$group];
+
+        $employees = \App\Models\Employee::where('UNIT', $unit)
+            ->whereBetween('usia', [$minAge, $maxAge])
+            ->select('nama', 'usia')
+            ->orderBy('nama')
+            ->get();
+
+        return response()->json($employees);
+    }
+
 }

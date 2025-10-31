@@ -101,7 +101,7 @@ class EmployeesImport implements ToCollection
                     'alamat_gedung'         => $row[65] ?? null,
                     'kota_gedung'           => $row[66] ?? null,
                     'unit'                  => $row[67] ?? null,
-                    'ket'                   => $row[68] ?? null,
+                    'tc'                   => $row[68] ?? null,
                     'status_eligibility'    => $status,
                 ]
             );

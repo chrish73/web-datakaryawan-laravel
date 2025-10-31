@@ -1,0 +1,138 @@
+/* =======================================
+   GLOBAL & THEME VARIABLES
+   ======================================= */
+:root {
+    /* Skema Warna Utama (Light Mode) */
+    --clr-primary: #3f51b5; /* Biru Indigo Kuat */
+    --clr-accent: #ff4081;  /* Pink Aksesn Kuat */
+    --clr-bg: #eef1f6;      /* Background Sangat Terang */
+    --clr-card-bg: #ffffff;
+    --clr-text: #344767;
+    --clr-border: #e0e0e0;
+    --shadow-main: 0 4px 15px rgba(0, 0, 0, 0.1);
+    --shadow-hover: 0 8px 30px rgba(63, 81, 181, 0.3);
+    --card-radius: 1rem;
+}
+
+[data-bs-theme="dark"] {
+    /* Skema Warna Dark Mode */
+    --clr-primary: #8c9eff;
+    --clr-accent: #ff80ab;
+    --clr-bg: #1e293b;
+    --clr-card-bg: #2d3748;
+    --clr-text: #e2e8f0;
+    --clr-border: #4a5568;
+    --shadow-main: 0 4px 15px rgba(0, 0, 0, 0.3);
+    --shadow-hover: 0 8px 30px rgba(140, 158, 255, 0.2);
+}
+
+/* =======================================
+   BODY & BASE STYLES
+   ======================================= */
+body {
+    background-color: var(--clr-bg);
+    color: var(--clr-text);
+    font-family: 'Poppins', sans-serif;
+    padding-top: 80px;
+    transition: background-color 0.4s ease, color 0.4s ease;
+}
+.main-content {
+    margin-top: 30px;
+    padding-bottom: 30px;
+}
+.container {
+    background-color: transparent;
+    padding: 0;
+    box-shadow: none;
+}
+
+/* =======================================
+   NAVBAR & NAVIGATION
+   ======================================= */
+.navbar {
+    background-color: var(--clr-card-bg);
+    box-shadow: var(--shadow-main);
+    transition: background-color 0.4s ease;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+.navbar-brand {
+    color: var(--clr-primary) !important;
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+.nav-link {
+    color: var(--clr-text) !important;
+    font-weight: 500;
+    padding: 8px 15px !important;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+.nav-link:hover,
+.nav-link.active {
+    background-color: var(--clr-primary);
+    color: var(--clr-card-bg) !important;
+    box-shadow: 0 4px 10px rgba(63, 81, 181, 0.4);
+    transform: translateY(-2px);
+}
+#light-icon { color: #ffc107 !important; }
+#dark-icon { color: var(--clr-primary) !important; }
+
+
+/* =======================================
+   HEADING & ALERTS
+   ======================================= */
+.page-title {
+    color: var(--clr-primary);
+    border-bottom: 3px solid var(--clr-accent);
+    padding-bottom: 12px;
+    margin-bottom: 30px;
+    font-weight: 800;
+    font-size: 2rem;
+}
+
+/* =======================================
+   CHART/BAND VIEW STYLES
+   ======================================= */
+.chart-card {
+    background-color: var(--clr-card-bg); /* Latar belakang dari Card */
+    border-radius: var(--card-radius);
+    padding: 30px;
+    box-shadow: var(--shadow-main);
+    transition: background-color 0.4s ease;
+}
+
+
+
+.chart-card h2 {
+    color: var(--clr-primary);
+    font-weight: 700;
+    margin-bottom: 25px;
+    border-bottom: 1px solid var(--clr-border);
+    padding-bottom: 10px;
+}
+
+/* Jika Anda ingin tombol info tetap ada */
+.btn-info {
+    background-color: var(--clr-accent);
+    border-color: var(--clr-accent);
+    color: white !important;
+    font-weight: bold;
+}
+.btn-info:hover {
+    background-color: #c51162;
+    border-color: #c51162;
+}
+
+.employee-card {
+    border: none;
+    border-radius: var(--card-radius);
+    background-color: var(--clr-card-bg);
+    box-shadow: var(--shadow-main);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+.employee-card:hover {
+    transform: translateY(-8px); /* Efek melayang lebih tinggi */
+    box-shadow: var(--shadow-hover);
+}

@@ -33,3 +33,15 @@ Route::get('/employees/band', function () {
 
 
 Route::post('/employees/import-birthday', [EmployeeController::class, 'importBirthday'])->name('employees.import_birthday');
+
+
+// --- START: NEW BIRTHDAY ROUTES ---
+Route::get('/employees/birthdays/today', [EmployeeController::class, 'todayBirthdays'])->name('employees.today_birthdays');
+Route::get('/employees/birthdays/upcoming', [EmployeeController::class, 'upcomingBirthdays'])->name('employees.upcoming_birthdays');
+Route::get('/employees/birthdays/notification', [EmployeeController::class, 'getTodayBirthdaysNotification'])->name('employees.birthdays_notification');
+// --- END: NEW BIRTHDAY ROUTES ---
+
+
+Route::get('/employees/age-group-detail/{unit}/{group}', [EmployeeController::class, 'getAgeGroupDetails'])
+    ->name('employees.age_group_detail');
+

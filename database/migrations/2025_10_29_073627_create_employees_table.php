@@ -92,7 +92,7 @@ return new class extends Migration {
             $table->string('alamat_gedung')->nullable();
             $table->string('kota_gedung')->nullable();
             $table->string('unit')->nullable();
-            $table->string('ket')->nullable();
+            $table->string('tc')->nullable();
 
             // Tambahan untuk status eligibility
 
