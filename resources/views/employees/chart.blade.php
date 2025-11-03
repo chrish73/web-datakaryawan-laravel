@@ -140,7 +140,7 @@
                 .then(data => {
                     const bands = data.bands;
                     const units = data.units;
-                    const aggregatedData = data.data;
+                    const aggregatedData = data.data; 
 
                     const colors = [
                         'rgba(255, 99, 132, 0.8)',
