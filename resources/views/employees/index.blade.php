@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <script src="{{ asset('js/theme-switcher.js') }}"></script>
+    {{-- <script src="{{ asset('js/theme-switcher.js') }}"></script> --}}
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
 </head>
 
@@ -70,7 +70,7 @@
                     <i class="bi bi-gift-fill me-2 fs-4"></i>
                     <span id="birthday-message" class="fw-bold"></span>
                 </div>
-                <a href="{{ route('employees.today_birthdays') }}" class="btn btn-sm btn-info fw-bold">Lihat Detail <i class="bi bi-arrow-right"></i></a>
+                <a href="{{ route('employees.today_birthdays') }}" class="btn btn-sm btn-info fw-bold">Lihat Detail</a>
             </div>
         </div>
         {{-- END: BIRTHDAY NOTIFICATION AREA --}}
@@ -98,7 +98,7 @@
                 <div class="d-flex flex-column gap-3">
                     {{-- Form Import Data Utama --}}
                     <form action="{{ route('employees.import') }}" method="POST" enctype="multipart/form-data"
-                        class="d-flex import-form shadow-sm p-3 rounded-3 bg-white">
+                        class="d-flex import-form shadow-sm p-3 rounded-3 border border-light-subtle">
                         @csrf
                         <input type="file" name="file" accept=".csv,.xlsx,.xls" class="form-control form-control-sm me-2" required>
                         <button type="submit" class="btn btn-primary btn-sm text-nowrap" id="importButton">
@@ -108,7 +108,7 @@
 
                     {{-- Form Import Data Ulang Tahun --}}
                     <form action="{{ route('employees.import_birthday') }}" method="POST" enctype="multipart/form-data"
-                        class="d-flex import-form shadow-sm p-3 rounded-3 bg-white">
+                        class="d-flex import-form shadow-sm p-3 rounded-3 border border-light-subtle">
                         @csrf
                         <input type="file" name="file" accept=".csv,.xlsx,.xls" class="form-control form-control-sm me-2" required>
                         <button type="submit" class="btn btn-info btn-sm text-nowrap" id="importBirthdayButton">
@@ -120,7 +120,7 @@
 
             <div class="col-lg-6">
                 <h5 class="fw-bold text-muted mb-3"><i class="bi bi-search me-2"></i>Pencarian Data</h5>
-                <form method="GET" action="{{ route('employees.index') }}" class="d-flex search-form shadow-sm p-3 rounded-3 bg-white">
+                <form method="GET" action="{{ route('employees.index') }}" class="d-flex search-form shadow-sm p-3 rounded-3 border border-light-subtle">
                     <div class="input-group">
                         <input type="text" name="search" class="form-control" placeholder="Masukkan Nama..."
                             value="{{ $search }}">
@@ -129,6 +129,15 @@
                     </div>
                 </form>
             </div>
+
+            {{-- START: NEW EXPORT BUTTON --}}
+                <div class="d-flex flex-column gap-3 mt-3">
+                    <h5 class="fw-bold text-muted mb-1"><i class="bi bi-download me-2"></i>Opsi Export Data</h5>
+                    <a href="{{ route('employees.export') }}" class="btn btn-success btn-sm text-nowrap shadow-sm p-3 rounded-3">
+                        <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i> Export Semua Data Karyawan
+                    </a>
+                </div>
+                {{-- END: NEW EXPORT BUTTON --}}
         </div>
 
         {{-- Tampilan Data Karyawan dalam bentuk Card --}}
@@ -195,7 +204,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    {{-- Logika JS (dibiarkan sama dengan yang sebelumnya, hanya disederhanakan di sini) --}}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Logika untuk mencegah double-click pada tombol Import (main.js)

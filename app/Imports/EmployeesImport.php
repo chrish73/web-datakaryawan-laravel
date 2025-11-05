@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\Employee;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
+use Carbon\Carbon;
 
 class EmployeesImport implements ToCollection
 {
@@ -14,10 +15,47 @@ class EmployeesImport implements ToCollection
     {
         foreach ($rows as $index => $row) {
             // Lewati baris header pertama
-            if ($index === 0) continue;
+            if ($index === 0) {
+                continue;
+            }
 
             $nik = trim($row[2] ?? '');
-            if (empty($nik)) continue;
+            if (empty($nik)) {
+                continue;
+            }
+
+            // Daftar kota yang valid
+            $validCities = [
+                'BATAM',
+                'PEKANBARU',
+                'PADANG',
+                'MEDAN',
+                'BENGKULU',
+                'PALEMBANG',
+                'BANDA ACEH',
+                'PEMATANGSIANTAR',
+                'BANDAR LAMPUNG',
+                'PANGKAL PINANG',
+                'JAMBI'
+            ];
+
+            $validCompany = [
+                'PT. TELKOM INFRASTRUKTUR INDONESIA'
+            ];
+
+
+            // Ambil kota gedung dari Excel, trim & uppercase agar konsisten
+            $namaPersonelSubarea = strtoupper(trim($row[19] ?? ''));
+            // Lewati baris jika kota_gedung tidak valid
+            if (!in_array($namaPersonelSubarea, $validCities)) {
+                continue; // skip baris ini
+            }
+
+            $namaPerusahaan = strtoupper(trim($row[54] ?? ''));
+
+            if (!in_array($namaPerusahaan, $validCompany)){
+                continue;
+            }
 
             $this->importedNiks[] = $nik;
 
@@ -41,38 +79,38 @@ class EmployeesImport implements ToCollection
                     'nama_agama'            => $row[5] ?? null,
                     'usia'                  => $row[6] ?? null,
                     'kelompok_usia'         => $row[7] ?? null,
-                    'tgl_capeg'             => $row[8] ?? null,
-                    'tgl_pegprus'           => $row[9] ?? null,
-                    'tgl_mulaikerja'        => $row[10] ?? null,
-                    'tgl_pensiun'           => $row[11] ?? null,
+                    'tgl_capeg'             => $this->parseDate($row[8] ?? null),
+                    'tgl_pegprus'           => $this->parseDate($row[9] ?? null),
+                    'tgl_mulaikerja'        => $this->parseDate($row[10] ?? null),
+                    'tgl_pensiun'           => $this->parseDate($row[11] ?? null),
                     'nama_employee_group'   => $row[12] ?? null,
-                    'nama_employee_subgroup'=> $row[13] ?? null,
+                    'nama_employee_subgroup' => $row[13] ?? null,
                     'kode_personnel_area'   => $row[14] ?? null,
                     'kode_host'             => $row[15] ?? null,
                     'kode_function_unit'    => $row[16] ?? null,
                     'nama_function_unit'    => $row[17] ?? null,
-                    'kode_personnel_subarea'=> $row[18] ?? null,
-                    'nama_personnel_subarea'=> $row[19] ?? null,
-                    'tgl_psa'               => $row[20] ?? null,
+                    'kode_personnel_subarea' => $row[18] ?? null,
+                    'nama_personnel_subarea' => $namaPersonelSubarea,
+                    'tgl_psa'               => $this->parseDate($row[20] ?? null),
                     'kode_payroll_area'     => $row[21] ?? null,
                     'nama_payroll_area'     => $row[22] ?? null,
                     'kode_divisi'           => $row[23] ?? null,
-                    'tgl_divisi'            => $row[24] ?? null,
+                    'tgl_divisi'            => $this->parseDate($row[24] ?? null),
                     'nama_divisi'           => $row[25] ?? null,
                     'kode_unit'             => $row[26] ?? null,
-                    'tgl_unit'              => $row[27] ?? null,
+                    'tgl_unit'              => $this->parseDate($row[27] ?? null),
                     'nama_unit'             => $row[28] ?? null,
                     'long_unit'             => $row[29] ?? null,
                     'witel'                 => $row[30] ?? null,
                     'objidposisi'           => $row[31] ?? null,
-                    'tgl_posisi'            => $row[32] ?? null,
+                    'tgl_posisi'            => $this->parseDate($row[32] ?? null),
                     'kode_posisi'           => $row[33] ?? null,
                     'nama_posisi'           => $row[34] ?? null,
                     'long_posisi'           => $row[35] ?? null,
                     'lama_posisi'           => $row[36] ?? null,
                     'nama_action'           => $row[37] ?? null,
                     'band_posisi'           => $row[38] ?? null,
-                    'tgl_band_posisi'       => $row[39] ?? null,
+                    'tgl_band_posisi'       => $this->parseDate($row[39] ?? null),
                     'lama_band_posisi'      => $row[40] ?? null,
                     'flag_pj'               => $row[41] ?? null,
                     'lama_pj'               => $row[42] ?? null,
@@ -87,7 +125,7 @@ class EmployeesImport implements ToCollection
                     'jurusan_pendidikan'    => $row[51] ?? null,
                     'nama_institusi'        => $row[52] ?? null,
                     'kode_perusahaan'       => $row[53] ?? null,
-                    'nama_perusahaan'       => $row[54] ?? null,
+                    'nama_perusahaan'       => $namaPerusahaan,
                     'kode_home'             => $row[55] ?? null,
                     'nama_home'             => $row[56] ?? null,
                     'job_family'            => $row[57] ?? null,
@@ -134,6 +172,27 @@ class EmployeesImport implements ToCollection
             return 'Not Eligible';
         } else {
             return 'Perlu Review';
+        }
+    }
+
+       private function parseDate($date)
+    {
+        if (empty($date)) return null;
+
+        try {
+            // Jika format "1970-07-07 00:00:00"
+            if (is_string($date) && strpos($date, '-') !== false) {
+                return Carbon::parse($date)->format('Y-m-d');
+            }
+
+            // Jika format Excel serial date
+            if (is_numeric($date)) {
+                return Carbon::instance(\PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($date))->format('Y-m-d');
+            }
+
+            return Carbon::parse($date)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return null;
         }
     }
 }

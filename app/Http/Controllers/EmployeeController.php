@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\EmployeesExport;
 use App\Imports\BirthdayImport;
 use Illuminate\Http\Request;
 use App\Models\Employee;
@@ -18,7 +19,7 @@ class EmployeeController extends Controller
 
         $employees = Employee::when($search, function ($query, $search) {
             $query->where('nama', 'like', "%{$search}%");
-        })->paginate(10);
+        })->simplePaginate(9);
 
         return view('employees.index', compact('employees', 'search'));
     }
@@ -142,7 +143,8 @@ class EmployeeController extends Controller
         $durationGroupCase = "CASE
                                 WHEN lama_band_posisi < 24 THEN '< 2 Tahun'
                                 WHEN lama_band_posisi >= 24 AND lama_band_posisi <= 60 THEN '2 - 5 Tahun'
-                                WHEN lama_band_posisi > 60 THEN '> 5 Tahun'
+                                WHEN lama_band_posisi > 60 AND lama_band_posisi <= 120 THEN '5 - 10 Tahun'
+                                WHEN lama_band_posisi > 121 THEN '> 10 Tahun'
                                 ELSE 'Lainnya'
                             END";
 
@@ -154,7 +156,7 @@ class EmployeeController extends Controller
                         ->get();
 
         // 2. Tentukan urutan Durasi yang diinginkan
-        $durationGroupsOrder = ['< 2 Tahun', '2 - 5 Tahun', '> 5 Tahun'];
+        $durationGroupsOrder = ['< 2 Tahun', '2 - 5 Tahun', '5 - 10 Tahun', '> 10 Tahun',];
 
         $chartData = [];
         $units = $data->pluck('UNIT')->unique()->sort()->values();
@@ -320,6 +322,65 @@ class EmployeeController extends Controller
             ->get();
 
         return response()->json($employees);
+    }
+
+    /**
+     * Get detail karyawan berdasarkan UNIT dan kelompok Durasi Band Posisi (lama_band_posisi dalam bulan).
+     */
+    public function getBandDurationDetails($unit, $group)
+    {
+        $durationRanges = [
+            // Disesuaikan dengan logika di bandPositionDurationChartData
+            '< 2 Tahun'     => [0, 23],  // < 24 bulan
+            '2 - 5 Tahun'   => [24, 60], // 24 hingga 60 bulan
+            '5 - 10 Tahun'     => [61, 119], // > 60 bulan
+            '> 10 Tahun'     => [120, 999], // > 120 bulan
+
+        ];
+
+        if (!isset($durationRanges[$group])) {
+            return response()->json([]);
+        }
+
+        [$minDuration, $maxDuration] = $durationRanges[$group];
+
+        $employees = \App\Models\Employee::where('UNIT', $unit)
+            ->whereBetween('lama_band_posisi', [$minDuration, $maxDuration])
+            ->select('nama', 'lama_band_posisi')
+            ->orderBy('nama')
+            ->get();
+
+        return response()->json($employees);
+    }
+
+    /**
+     * Get detail karyawan berdasarkan UNIT dan Band Posisi.
+     */
+/**
+     * Get detail karyawan berdasarkan UNIT dan Band Posisi.
+     */
+    public function getBandPositionDetails($unit, $band)
+    {
+        $validBands = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+
+        if (!in_array($band, $validBands)) {
+            return response()->json([]);
+        }
+
+        $employees = \App\Models\Employee::where('UNIT', $unit)
+            ->where('band_posisi', $band)
+            ->select('nama', 'band_posisi', 'nama_posisi')
+            ->orderBy('nama')
+            ->get();
+
+        return response()->json($employees);
+    }
+
+    public function export()
+    {
+        // Menggunakan kelas EmployeesExport untuk mengambil data dan mengunduhnya sebagai file .xlsx
+        $fileName = 'data_karyawan_all_'.Carbon::now()->format('Ymd_His').'.csv';
+        return Excel::download(new EmployeesExport, $fileName);
     }
 
 }

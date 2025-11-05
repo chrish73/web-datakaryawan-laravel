@@ -5,16 +5,15 @@ use App\Http\Controllers\EmployeeController;
 use Illuminate\Support\Facades\Route;
 
 
-Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
+Route::get('/', [EmployeeController::class, 'index'])->name('employees.index');
 Route::post('/employees/import', [EmployeeController::class, 'import'])->name('employees.import');
 
 // Route Band Posisi
 Route::get('/employees/chart-data', [EmployeeController::class, 'bandPositionChartData'])->name('employees.chart_data');
-Route::get('/', function () {
+Route::get('/employees', function () {
     return view('employees.chart'); // Route view band posisi
 })->name('employees.chart');
 
-// --- ROUTE KELOMPOK USIA (SUDAH DIPERBAIKI) ---
 
 // Route untuk MENGAMBIL DATA (API)
 Route::get('/employees/age-data', [EmployeeController::class, 'ageGroupChartData'])->name('employees.age_group_chart_data');
@@ -45,3 +44,8 @@ Route::get('/employees/birthdays/notification', [EmployeeController::class, 'get
 Route::get('/employees/age-group-detail/{unit}/{group}', [EmployeeController::class, 'getAgeGroupDetails'])
     ->name('employees.age_group_detail');
 
+Route::get('employees/band-duration-detail/{unit}/{group}', [EmployeeController::class, 'getBandDurationDetails']);
+
+Route::get('employees/band-position-detail/{unit}/{band}', [EmployeeController::class, 'getBandPositionDetails']);
+
+Route::get('/employees/export', [EmployeeController::class, 'export'])->name('employees.export');

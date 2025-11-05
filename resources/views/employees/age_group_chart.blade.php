@@ -25,17 +25,20 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-4">
                     <li class="nav-item">
-                        <a class="nav-link {{ Request::routeIs('employees.index') ? 'active' : '' }}" href="{{ route('employees.index') }}">
+                        <a class="nav-link {{ Request::routeIs('employees.index') ? 'active' : '' }}"
+                            href="{{ route('employees.index') }}">
                             <i class="bi bi-grid-fill me-1"></i> Data Karyawan
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ Request::routeIs('employees.chart') ? 'active' : '' }}" href="{{ route('employees.chart') }}">
+                        <a class="nav-link {{ Request::routeIs('employees.chart') ? 'active' : '' }}"
+                            href="{{ route('employees.chart') }}">
                             <i class="bi bi-bar-chart-line-fill me-1"></i> Data Band Posisi
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ Request::routeIs('employees.age_group_chart') ? 'active' : '' }}" href="{{ route('employees.age_group_chart') }}">
+                        <a class="nav-link {{ Request::routeIs('employees.age_group_chart') ? 'active' : '' }}"
+                            href="{{ route('employees.age_group_chart') }}">
                             <i class="bi bi-graph-up me-1"></i> Data Kelompok Usia
                         </a>
                     </li>
@@ -47,7 +50,8 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('employees.today_birthdays') }}">
                             <i class="bi bi-gift-fill me-1"></i> Ulang Tahun Hari Ini
-                            <span id="birthday-badge" class="badge text-bg-warning rounded-pill ms-1" style="display: none;"></span>
+                            <span id="birthday-badge" class="badge text-bg-warning rounded-pill ms-1"
+                                style="display: none;"></span>
                         </a>
                     </li>
                 </ul>
@@ -66,7 +70,8 @@
 
     {{-- === MAIN CONTENT === --}}
     <div class="container main-content">
-        <h3 class="page-title"><i class="bi bi-graph-up me-2"></i> Distribusi Karyawan berdasarkan Kelompok Usia per Unit</h3>
+        <h3 class="page-title"><i class="bi bi-graph-up me-2"></i> Distribusi Karyawan berdasarkan Kelompok Usia per
+            Unit</h3>
         <div class="chart-card">
             <div class="row">
                 <div class="col-md-12">
@@ -94,6 +99,8 @@
     {{-- === JS === --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -130,7 +137,11 @@
             fetch('{{ route('employees.age_group_chart_data') }}')
                 .then(res => res.json())
                 .then(data => {
-                    const { age_groups, units, data: aggregatedData } = data;
+                    const {
+                        age_groups,
+                        units,
+                        data: aggregatedData
+                    } = data;
 
                     const colors = [
                         'rgba(54, 162, 235, 0.8)',
@@ -150,35 +161,74 @@
                     const ctx = document.getElementById('ageGroupChart').getContext('2d');
                     const chart = new Chart(ctx, {
                         type: 'bar',
-                        data: { labels: units, datasets },
+                        data: {
+                            labels: units,
+                            datasets
+                        },
                         options: {
                             responsive: true,
                             scales: {
-                                x: { stacked: true, title: { display: true, text: 'Unit' } },
+                                x: {
+                                    stacked: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Unit'
+                                    }
+                                },
                                 y: {
                                     stacked: true,
                                     beginAtZero: true,
-                                    title: { display: true, text: 'Jumlah Karyawan' },
-                                    ticks: { stepSize: 1, callback: v => Number.isInteger(v) ? v : null }
+                                    title: {
+                                        display: true,
+                                        text: 'Jumlah Karyawan'
+                                    },
+                                    ticks: {
+                                        stepSize: 1,
+                                        callback: v => Number.isInteger(v) ? v : null
+                                    }
                                 }
                             },
                             plugins: {
-                                title: { display: true, text: 'Distribusi Kelompok Usia per Unit' },
-                                legend: { position: 'bottom' }
+                                title: {
+                                    display: true,
+                                    text: 'Distribusi Kelompok Usia per Unit'
+                                },
+                                legend: {
+                                    position: 'bottom'
+                                },
+                                datalabels: {
+                                    color: '#fff', // warna teks label
+                                    anchor: 'center',
+                                    align: 'center',
+                                    font: {
+                                        weight: 'bold',
+                                        size: 12
+                                    },
+                                    formatter: function(value, context) {
+                                        if (value > 0) {
+                                            return value; // tampilkan angka jika > 0
+                                        } else {
+                                            return ''; // jangan tampilkan angka nol
+                                        }
+                                    }
+                                }
                             }
-                        }
+                        },
+                        plugins: [ChartDataLabels] // daftar plugin di sini
                     });
-
                     // === KLIK BAR CHART ===
                     document.getElementById('ageGroupChart').onclick = function(evt) {
-                        const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+                        const points = chart.getElementsAtEventForMode(evt, 'nearest', {
+                            intersect: true
+                        }, true);
                         if (!points.length) return;
 
                         const point = points[0];
                         const unit = chart.data.labels[point.index];
                         const group = chart.data.datasets[point.datasetIndex].label;
 
-                        fetch(`{{ url('employees/age-group-detail') }}/${encodeURIComponent(unit)}/${encodeURIComponent(group)}`)
+                        fetch(
+                                `{{ url('employees/age-group-detail') }}/${encodeURIComponent(unit)}/${encodeURIComponent(group)}`)
 
                             .then(res => res.json())
                             .then(employees => {
@@ -191,13 +241,14 @@
                                     modalBody.innerHTML = `
                                         <ul class="list-group">
                                             ${employees.map(emp => `
-                                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                    ${emp.nama}
-                                                    <span class="badge bg-primary rounded-pill">${emp.usia} th</span>
-                                                </li>`).join('')}
+                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                        ${emp.nama}
+                                                        <span class="badge bg-primary rounded-pill">${emp.usia} th</span>
+                                                    </li>`).join('')}
                                         </ul>`;
                                 } else {
-                                    modalBody.innerHTML = '<p class="text-muted">Tidak ada data karyawan untuk kategori ini.</p>';
+                                    modalBody.innerHTML =
+                                        '<p class="text-muted">Tidak ada data karyawan untuk kategori ini.</p>';
                                 }
 
                                 new bootstrap.Modal(document.getElementById('employeeModal')).show();
@@ -208,4 +259,5 @@
         });
     </script>
 </body>
+
 </html>

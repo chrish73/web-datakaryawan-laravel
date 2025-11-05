@@ -33,11 +33,13 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {{ Request::routeIs('employees.chart') ? 'active' : '' }}"
-                            href="{{ route('employees.chart') }}"><i class="bi bi-bar-chart-line-fill me-1"></i> Data Band Posisi</a>
+                            href="{{ route('employees.chart') }}"><i class="bi bi-bar-chart-line-fill me-1"></i> Data
+                            Band Posisi</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {{ Request::routeIs('employees.age_group_chart') ? 'active' : '' }}"
-                            href="{{ route('employees.age_group_chart' ) }}"><i class="bi bi-graph-up me-1"></i> Data Kelompok Usia</a>
+                            href="{{ route('employees.age_group_chart') }}"><i class="bi bi-graph-up me-1"></i> Data
+                            Kelompok Usia</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {{ Request::is('employees/band') ? 'active' : '' }}"
@@ -45,7 +47,8 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('employees.today_birthdays') }}">
-                            <i class="bi bi-gift-fill me-1"></i> Ulang Tahun Hari Ini <span id="birthday-badge" class="badge text-bg-warning rounded-pill ms-1" style="display: none;"></span>
+                            <i class="bi bi-gift-fill me-1"></i> Ulang Tahun Hari Ini <span id="birthday-badge"
+                                class="badge text-bg-warning rounded-pill ms-1" style="display: none;"></span>
                         </a>
                     </li>
                 </ul>
@@ -54,7 +57,8 @@
                 <div class="d-flex align-items-center ms-lg-3">
                     <i class="bi bi-sun-fill me-2 text-warning" id="light-icon"></i>
                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="darkModeToggle" role="switch" aria-label="Toggle Dark Mode">
+                        <input class="form-check-input" type="checkbox" id="darkModeToggle" role="switch"
+                            aria-label="Toggle Dark Mode">
                     </div>
                     <i class="bi bi-moon-stars-fill ms-2 text-primary" id="dark-icon"></i>
                 </div>
@@ -67,7 +71,8 @@
     <div class="container main-content">
 
         {{-- Judul Halaman Sesuai Desain --}}
-        <h3 class="page-title"><i class="bi bi-hourglass-split me-2"></i> Distribusi Karyawan berdasarkan Durasi Band Posisi per Unit</h3>
+        <h3 class="page-title"><i class="bi bi-hourglass-split me-2"></i> Distribusi Karyawan berdasarkan Durasi Band
+            Posisi per Unit</h3>
 
         {{-- Card untuk membungkus Chart --}}
         <div class="chart-card">
@@ -79,8 +84,28 @@
         </div>
     </div>
 
+    {{-- START: Modal Detail Karyawan --}}
+    <div class="modal fade" id="employeeModal" tabindex="-1" aria-labelledby="employeeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="employeeModalLabel">Daftar Karyawan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="employeeList">
+                    {{-- Daftar karyawan akan diisi oleh JavaScript --}}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{-- END: Modal Detail Karyawan --}}
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 
     {{-- Logika Dark Mode dan Chart JS --}}
     <script>
@@ -149,6 +174,7 @@
                         'rgba(0, 150, 136, 0.8)', // Hijau Teal: < 2 Tahun
                         'rgba(255, 152, 0, 0.8)', // Oranye: 2 - 5 Tahun
                         'rgba(192, 57, 43, 0.8)', // Merah Bata: > 5 Tahun
+                        'rgba(39, 174, 96, 0.8)',
                     ];
 
                     const datasets = durationGroups.map((group, index) => ({
@@ -160,7 +186,9 @@
                     }));
 
                     const ctx = document.getElementById('bandDurationChart').getContext('2d');
-                    new Chart(ctx, {
+
+                    // Simpan instance chart ke variabel
+                    const bandDurationChart = new Chart(ctx, {
                         type: 'bar',
                         data: {
                             labels: units,
@@ -184,12 +212,7 @@
                                         text: 'Jumlah Karyawan'
                                     },
                                     ticks: {
-                                        stepSize: 1,
-                                        callback: function(value) {
-                                            if (Number.isInteger(value)) {
-                                                return value; // hanya tampilkan angka bulat
-                                            }
-                                        }
+                                        stepSize: 1
                                     }
                                 }
                             },
@@ -200,10 +223,72 @@
                                 },
                                 legend: {
                                     position: 'bottom'
+                                },
+                                datalabels: {
+                                    color: '#fff', // warna teks label
+                                    anchor: 'center',
+                                    align: 'center',
+                                    font: {
+                                        weight: 'bold',
+                                        size: 12
+                                    },
+                                    formatter: function(value, context) {
+                                        if (value > 0) {
+                                            return value; // tampilkan angka jika > 0
+                                        } else {
+                                            return ''; // jangan tampilkan angka nol
+                                        }
+                                    }
                                 }
                             }
-                        }
+                        },
+                        plugins: [ChartDataLabels] // daftar plugin di sini
                     });
+
+
+                    // === KLIK BAR CHART untuk Detail Karyawan ===
+                    document.getElementById('bandDurationChart').onclick = function(evt) {
+                        // Gunakan instance chart yang sudah disimpan
+                        const points = bandDurationChart.getElementsAtEventForMode(evt, 'nearest', {
+                            intersect: true
+                        }, true);
+                        if (!points.length) return;
+
+                        const point = points[0];
+                        const unit = bandDurationChart.data.labels[point.index];
+                        const group = bandDurationChart.data.datasets[point.datasetIndex].label;
+
+                        // Panggil API endpoint baru
+                        // Asumsi route di Laravel adalah: employees/band-duration-detail/{unit}/{group}
+                        fetch(
+                                `/employees/band-duration-detail/${encodeURIComponent(unit)}/${encodeURIComponent(group)}`)
+                            .then(res => res.json())
+                            .then(employees => {
+                                const modalTitle = document.getElementById('employeeModalLabel');
+                                const modalBody = document.getElementById('employeeList');
+
+                                modalTitle.textContent =
+                                    `Daftar Karyawan Durasi Band Posisi (${group}) - ${unit}`;
+
+                                if (employees.length > 0) {
+                                    modalBody.innerHTML = `
+                                        <ul class="list-group">
+                                            ${employees.map(emp => `
+                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                        ${emp.nama}
+                                                        <span class="badge bg-primary rounded-pill">${emp.lama_band_posisi} bulan</span>
+                                                    </li>`).join('')}
+                                        </ul>`;
+                                } else {
+                                    modalBody.innerHTML =
+                                        '<p class="text-muted">Tidak ada data karyawan untuk kategori ini.</p>';
+                                }
+
+                                // Tampilkan modal
+                                new bootstrap.Modal(document.getElementById('employeeModal')).show();
+                            })
+                            .catch(err => console.error('Gagal memuat data detail:', err));
+                    };
                 });
             // END: Logika Chart
         });
