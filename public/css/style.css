@@ -108,6 +108,17 @@ body {
     border-color: #c51162;
 }
 
+.btn-info { /* Import Ulang Tahun */
+    background-color: var(--clr-accent);
+    border-color: var(--clr-accent);
+    color: white !important;
+    font-weight: bold;
+}
+.btn-info:hover {
+    background-color: #c51162;
+    border-color: #c51162;
+}
+
 /* --- CARD KARYAWAN (FOKUS PERUBAHAN) --- */
 .employee-card {
     border: none;

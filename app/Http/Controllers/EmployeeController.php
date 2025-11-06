@@ -9,6 +9,7 @@ use App\Models\Employee;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\EmployeesImport;
+use App\Imports\TcUpdateImport;
 use Carbon\Carbon;
 
 class EmployeeController extends Controller
@@ -18,12 +19,14 @@ class EmployeeController extends Controller
         $search = $request->get('search');
 
         $employees = Employee::when($search, function ($query, $search) {
-            $query->where('nama', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                  ->orWhere('nik', 'like', "%{$search}%");
+            });
         })->simplePaginate(9);
 
         return view('employees.index', compact('employees', 'search'));
     }
-
 
     public function import(Request $request)
     {
@@ -61,6 +64,7 @@ class EmployeeController extends Controller
         // Mendapatkan semua data UNIT dan band_posisi, lalu menghitungnya
         $data = Employee::select('UNIT', 'band_posisi', DB::raw('count(*) as count'))
                         ->groupBy('UNIT', 'band_posisi')
+                        ->where('status_eligibility', 'Eligible')
                         ->orderBy('UNIT')
                         ->orderBy('band_posisi')
                         ->get();
@@ -180,6 +184,7 @@ class EmployeeController extends Controller
             'data' => $chartData,
         ]);
     }
+
     public function importBirthday(Request $request)
     {
         $request->validate([
@@ -353,12 +358,20 @@ class EmployeeController extends Controller
         return response()->json($employees);
     }
 
-    /**
-     * Get detail karyawan berdasarkan UNIT dan Band Posisi.
-     */
-/**
-     * Get detail karyawan berdasarkan UNIT dan Band Posisi.
-     */
+
+    //  Get detail karyawan berdasarkan UNIT saja. (BARU)
+
+    public function getUnitDetails($unit)
+    {
+        $employees = \App\Models\Employee::where('UNIT', $unit)
+            ->select('nama', 'band_posisi', 'nama_posisi', 'status_eligibility')
+            ->orderBy('nama')
+            ->get();
+
+        return response()->json($employees);
+    }
+
+
     public function getBandPositionDetails($unit, $band)
     {
         $validBands = ['I', 'II', 'III', 'IV', 'V', 'VI'];
@@ -369,7 +382,8 @@ class EmployeeController extends Controller
 
         $employees = \App\Models\Employee::where('UNIT', $unit)
             ->where('band_posisi', $band)
-            ->select('nama', 'band_posisi', 'nama_posisi')
+            ->where('status_eligibility', 'Eligible')
+            ->select('nama', 'band_posisi', 'nama_posisi', 'status_eligibility')
             ->orderBy('nama')
             ->get();
 
@@ -379,8 +393,35 @@ class EmployeeController extends Controller
     public function export()
     {
         // Menggunakan kelas EmployeesExport untuk mengambil data dan mengunduhnya sebagai file .xlsx
-        $fileName = 'data_karyawan_all_'.Carbon::now()->format('Ymd_His').'.csv';
-        return Excel::download(new EmployeesExport, $fileName);
+        $fileName = 'data_karyawan_all_'.Carbon::now()->format('Ymd_His').'.xlsx';
+        return Excel::download(new EmployeesExport(), $fileName);
+    }
+
+    public function importTc(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:csv,txt,xlsx,xls|max:4096',
+        ]);
+
+        $import = new TcUpdateImport();
+
+        try {
+            Excel::import($import, $request->file('file'));
+
+            $updatedCount = count($import->getUpdatedNiks());
+            $notFoundCount = count($import->getNotFoundNiks());
+
+            $message = "Berhasil update kolom TC untuk {$updatedCount} karyawan.";
+
+            if ($notFoundCount > 0) {
+                $message .= " {$notFoundCount} NIK tidak ditemukan di database.";
+            }
+
+            return redirect()->route('employees.index')->with('success', $message);
+
+        } catch (\Exception $e) {
+            return redirect()->route('employees.index')->with('error', 'Gagal import data TC: ' . $e->getMessage());
+        }
     }
 
 }

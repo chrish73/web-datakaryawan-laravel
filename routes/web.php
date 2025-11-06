@@ -43,9 +43,8 @@ Route::get('/employees/birthdays/notification', [EmployeeController::class, 'get
 
 Route::get('/employees/age-group-detail/{unit}/{group}', [EmployeeController::class, 'getAgeGroupDetails'])
     ->name('employees.age_group_detail');
-
 Route::get('employees/band-duration-detail/{unit}/{group}', [EmployeeController::class, 'getBandDurationDetails']);
-
+Route::get('employees/unit-detail/{unit}', [EmployeeController::class, 'getUnitDetails']);
 Route::get('employees/band-position-detail/{unit}/{band}', [EmployeeController::class, 'getBandPositionDetails']);
-
 Route::get('/employees/export', [EmployeeController::class, 'export'])->name('employees.export');
+Route::post('/employees/import-tc', [EmployeeController::class, 'importTc'])->name('employees.import_tc');

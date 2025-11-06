@@ -138,8 +138,8 @@ class EmployeesImport implements ToCollection
                     'nama_gedung'           => $row[64] ?? null,
                     'alamat_gedung'         => $row[65] ?? null,
                     'kota_gedung'           => $row[66] ?? null,
-                    'unit'                  => $row[67] ?? null,
-                    'tc'                   => $row[68] ?? null,
+                    'unit'                  => null,
+                    'tc'                    => null,
                     'status_eligibility'    => $status,
                 ]
             );
@@ -166,9 +166,9 @@ class EmployeesImport implements ToCollection
             return 'Data tidak valid';
         }
 
-        if ($p <= 3 && $k <= 3) {
+        if ($p <= 2 || $k <= 2) {
             return 'Eligible';
-        } elseif ($p >= 4 || $k >= 4) {
+        } elseif ($p >= 3 && $k >= 3) {
             return 'Not Eligible';
         } else {
             return 'Perlu Review';

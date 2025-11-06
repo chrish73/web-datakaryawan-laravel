@@ -102,7 +102,17 @@
                         @csrf
                         <input type="file" name="file" accept=".csv,.xlsx,.xls" class="form-control form-control-sm me-2" required>
                         <button type="submit" class="btn btn-primary btn-sm text-nowrap" id="importButton">
-                            <i class="bi bi-cloud-arrow-up-fill me-1"></i> Import Karyawan
+                            <i class="bi bi-cloud-arrow-up-fill me-1"></i> Import Data Karyawan
+                        </button>
+                    </form>
+
+                    {{-- Form input data TC  --}}
+                    <form action="{{ route('employees.import_tc') }}" method="POST" enctype="multipart/form-data"
+                        class="d-flex import-form shadow-sm p-3 rounded-3 border border-light-subtle">
+                        @csrf
+                        <input type="file" name="file" accept=".csv,.xlsx,.xls" class="form-control form-control-sm me-2" required>
+                        <button type="submit" class="btn btn-secondary btn-sm text-nowrap" id="importTcButton">
+                            <i class="bi bi-person-check-fill me-1"></i> Import Data TC dan Unit
                         </button>
                     </form>
 
@@ -112,7 +122,7 @@
                         @csrf
                         <input type="file" name="file" accept=".csv,.xlsx,.xls" class="form-control form-control-sm me-2" required>
                         <button type="submit" class="btn btn-info btn-sm text-nowrap" id="importBirthdayButton">
-                            <i class="bi bi-cake-fill me-1"></i> Import Ulang Tahun
+                            <i class="bi bi-gift-fill me-1"></i> Import Data Tanggal Lahir
                         </button>
                     </form>
                 </div>
@@ -122,7 +132,7 @@
                 <h5 class="fw-bold text-muted mb-3"><i class="bi bi-search me-2"></i>Pencarian Data</h5>
                 <form method="GET" action="{{ route('employees.index') }}" class="d-flex search-form shadow-sm p-3 rounded-3 border border-light-subtle">
                     <div class="input-group">
-                        <input type="text" name="search" class="form-control" placeholder="Masukkan Nama..."
+                        <input type="text" name="search" class="form-control" placeholder="Cari Nama / NIK..."
                             value="{{ $search }}">
                         <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
                         <a href="{{ route('employees.index') }}" class="btn btn-outline-danger"><i class="bi bi-x-circle"></i></a>
