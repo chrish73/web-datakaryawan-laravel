@@ -171,11 +171,11 @@
                         <div class="card-body-custom">
                             <h4 class="card-title-name">{{ $employee->nama }}</h4>
                             <div class="card-item">
-                                <span class="card-item-label"><i class="bi bi-briefcase-fill"></i>Unit Kerja</span>
-                                <span class="card-item-value">{{ $employee->nama_unit }}</span>
+                                <span class="card-item-label"><i class="bi bi-briefcase-fill"></i>Unit</span>
+                                <span class="card-item-value">{{ $employee->unit }}</span>
                             </div>
                             <div class="card-item">
-                                <span class="card-item-label"><i class="bi bi-clock-history"></i>Lama Band Posisi</span>
+                                <span class="card-item-label"><i class="bi bi-clock-history"></i>Lama Band Posisi (Bulan)</span>
                                 <span class="card-item-value">{{ $employee->lama_band_posisi }}</span>
                             </div>
                             <div class="card-item">
@@ -191,7 +191,7 @@
                                 <span class="card-item-value badge text-bg-info">{{ $employee->nilai_behavior }}</span>
                             </div>
                             <div class="card-item">
-                                <span class="card-item-label"><i class="bi bi-person-check-fill"></i>Talent Charter</span>
+                                <span class="card-item-label"><i class="bi bi-person-check-fill"></i>Talent Cluster</span>
                                 <span class="card-item-value talent-charter-text" style="font-size: 0.85em;">{{ $employee->tc }}</span>
                             </div>
                         </div>

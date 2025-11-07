@@ -43,7 +43,6 @@ class TcUpdateImport implements ToCollection
                     'tc'   => $tc,
                     'unit' => $unit,
                 ]);
-
                 $this->updatedNiks[] = $nik;
             } else {
                 $this->notFoundNiks[] = $nik;

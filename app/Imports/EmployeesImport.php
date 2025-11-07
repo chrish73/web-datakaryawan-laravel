@@ -53,7 +53,7 @@ class EmployeesImport implements ToCollection
 
             $namaPerusahaan = strtoupper(trim($row[54] ?? ''));
 
-            if (!in_array($namaPerusahaan, $validCompany)){
+            if (!in_array($namaPerusahaan, $validCompany)) {
                 continue;
             }
 
@@ -63,9 +63,10 @@ class EmployeesImport implements ToCollection
             $nilaiKinerja     = strtoupper(trim($row[44] ?? ''));
             $nilaiKompetensi  = strtoupper(trim($row[46] ?? ''));
             $nilaiBehavior    = strtoupper(trim($row[48] ?? ''));
+            $d = $row[40] ?? null;
 
             // Hitung status eligibility
-            $status = $this->hitungStatus($nilaiKinerja, $nilaiKompetensi);
+            $status = $this->hitungStatus($nilaiKinerja, $nilaiKompetensi, $d);
 
             // Simpan atau update data
             Employee::updateOrCreate(
@@ -151,9 +152,8 @@ class EmployeesImport implements ToCollection
         return $this->importedNiks;
     }
 
-    private function hitungStatus($nilaiKinerja, $nilaiKompetensi)
+    private function hitungStatus($nilaiKinerja, $nilaiKompetensi, $lamaBandPosisi)
     {
-        // Mapping huruf ke angka
         $rank = [
             'P1' => 1, 'P2' => 2, 'P3' => 3, 'P4' => 4, 'P5' => 5,
             'K1' => 1, 'K2' => 2, 'K3' => 3, 'K4' => 4, 'K5' => 5,
@@ -161,23 +161,27 @@ class EmployeesImport implements ToCollection
 
         $p = $rank[$nilaiKinerja] ?? null;
         $k = $rank[$nilaiKompetensi] ?? null;
+        $d = is_numeric($lamaBandPosisi) ? (int) $lamaBandPosisi : null;
 
-        if (is_null($p) || is_null($k)) {
-            return 'Data tidak valid';
+        if (is_null($p) || is_null($k) || is_null($d)) {
+            return null;
         }
 
-        if ($p <= 2 || $k <= 2) {
+        if (($p <= 2 || $k <= 2) && $d >= 6) {
             return 'Eligible';
-        } elseif ($p >= 3 && $k >= 3) {
+        } elseif (($p >= 3 && $k >= 3) || $d < 6) {
             return 'Not Eligible';
         } else {
             return 'Perlu Review';
         }
     }
 
-       private function parseDate($date)
+
+    private function parseDate($date)
     {
-        if (empty($date)) return null;
+        if (empty($date)) {
+            return null;
+        }
 
         try {
             // Jika format "1970-07-07 00:00:00"

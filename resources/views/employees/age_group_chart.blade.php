@@ -72,6 +72,13 @@
     <div class="container main-content">
         <h3 class="page-title"><i class="bi bi-graph-up me-2"></i> Distribusi Karyawan berdasarkan Kelompok Usia per
             Unit</h3>
+
+        {{-- === FILTER KELOMPOK USIA === --}}
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Pilih Kelompok Usia yang Ingin Ditampilkan:</label>
+            <div id="ageGroupFilterContainer" class="d-flex flex-wrap gap-2"></div>
+        </div>
+
         <div class="chart-card">
             <div class="row">
                 <div class="col-md-12">
@@ -100,7 +107,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -133,7 +139,7 @@
                     }
                 });
 
-            // === CHART ===
+            // === CHART DATA ===
             fetch('{{ route('employees.age_group_chart_data') }}')
                 .then(res => res.json())
                 .then(data => {
@@ -158,6 +164,26 @@
                         borderWidth: 1
                     }));
 
+                    // === TAMBAHKAN CHECKBOX UNTUK FILTER USIA ===
+                    const container = document.getElementById('ageGroupFilterContainer');
+                    age_groups.forEach((group, i) => {
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'form-check-input me-1';
+                        checkbox.id = `ageFilter-${i}`;
+                        checkbox.value = group;
+                        checkbox.checked = true;
+
+                        const label = document.createElement('label');
+                        label.className = 'form-check-label me-3';
+                        label.setAttribute('for', `ageFilter-${i}`);
+                        label.textContent = group;
+
+                        container.appendChild(checkbox);
+                        container.appendChild(label);
+                    });
+
+                    // === BUAT CHART ===
                     const ctx = document.getElementById('ageGroupChart').getContext('2d');
                     const chart = new Chart(ctx, {
                         type: 'bar',
@@ -197,25 +223,33 @@
                                     position: 'bottom'
                                 },
                                 datalabels: {
-                                    color: '#fff', // warna teks label
+                                    color: '#fff',
                                     anchor: 'center',
                                     align: 'center',
                                     font: {
                                         weight: 'bold',
                                         size: 12
                                     },
-                                    formatter: function(value, context) {
-                                        if (value > 0) {
-                                            return value; // tampilkan angka jika > 0
-                                        } else {
-                                            return ''; // jangan tampilkan angka nol
-                                        }
-                                    }
+                                    formatter: (value) => value > 0 ? value : ''
                                 }
                             }
                         },
-                        plugins: [ChartDataLabels] // daftar plugin di sini
+                        plugins: [ChartDataLabels]
                     });
+
+                    // === FILTER EVENT ===
+                    document.querySelectorAll('#ageGroupFilterContainer input[type="checkbox"]').forEach(cb => {
+                        cb.addEventListener('change', () => {
+                            const activeGroups = Array.from(document.querySelectorAll(
+                                    '#ageGroupFilterContainer input[type="checkbox"]:checked'
+                                    ))
+                                .map(c => c.value);
+                            chart.data.datasets = datasets.filter(ds => activeGroups.includes(ds
+                                .label));
+                            chart.update();
+                        });
+                    });
+
                     // === KLIK BAR CHART ===
                     document.getElementById('ageGroupChart').onclick = function(evt) {
                         const points = chart.getElementsAtEventForMode(evt, 'nearest', {
@@ -229,7 +263,6 @@
 
                         fetch(
                                 `{{ url('employees/age-group-detail') }}/${encodeURIComponent(unit)}/${encodeURIComponent(group)}`)
-
                             .then(res => res.json())
                             .then(employees => {
                                 const modalTitle = document.getElementById('employeeModalLabel');
