@@ -424,4 +424,19 @@ class EmployeeController extends Controller
         }
     }
 
+    public function getAllUnitEmployeeCounts()
+    {
+        // Mendapatkan total hitungan karyawan untuk setiap UNIT tanpa filter status_eligibility
+        $data = Employee::select('UNIT', \Illuminate\Support\Facades\DB::raw('count(*) as total_count'))
+                        ->groupBy('UNIT')
+                        ->orderBy('UNIT')
+                        ->get();
+
+        // Mengubah format menjadi associative array: ['UNIT A' => 100, 'UNIT B' => 50, ...]
+        $unitCounts = $data->pluck('total_count', 'UNIT')->all();
+
+        // Mengembalikan data dalam format JSON
+        return response()->json($unitCounts);
+    }
+
 }

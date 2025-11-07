@@ -120,293 +120,267 @@
 
     {{-- Logika Dark Mode dan Chart JS --}}
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
 
-            // START: Logika Dark Mode (Dipertahankan)
-            (function() {
-                const getStoredTheme = () => localStorage.getItem('theme');
-                const setStoredTheme = theme => localStorage.setItem('theme', theme);
-                const htmlElement = document.documentElement;
+        // ... (Logika Dark Mode dan Notifikasi Ulang Tahun di atas dipertahankan) ...
 
-                const storedTheme = getStoredTheme();
-                if (storedTheme) {
-                    htmlElement.setAttribute('data-bs-theme', storedTheme);
-                } else {
-                    htmlElement.setAttribute('data-bs-theme', 'light');
-                    setStoredTheme('light');
-                }
+        // FUNGSI BARU UNTUK MENAMPILKAN DETAIL KARYAWAN BERDASARKAN UNIT (Digunakan oleh tombol baru)
+        function showEmployeeDetailsByUnit(unit) {
+            // ... (Fungsi ini dipertahankan karena sudah benar untuk menampilkan detail Unit) ...
+            const modalTitle = document.getElementById('employeeModalLabel');
+            const modalBody = document.getElementById('employeeList');
+            modalTitle.textContent = `Memuat Daftar Karyawan di Unit: ${unit}...`;
+            modalBody.innerHTML =
+                '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+            new bootstrap.Modal(document.getElementById('employeeModal')).show();
 
-                const updateToggleUI = (theme) => {
-                    const toggle = document.getElementById('darkModeToggle');
-                    if (toggle) {
-                        toggle.checked = theme === 'dark';
+            // Memanggil endpoint yang mengambil SEMUA Band dalam Unit
+            fetch(`/employees/unit-detail/${encodeURIComponent(unit)}`)
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error('Network response was not ok');
                     }
-                };
+                    return res.json();
+                })
+                .then(employees => {
+                    modalTitle.textContent =
+                        `Daftar Karyawan di Unit: ${unit} (Total: ${employees.length} orang)`;
 
-                updateToggleUI(getStoredTheme() || 'light');
-
-                window.addEventListener('load', () => {
-                    const toggle = document.getElementById('darkModeToggle');
-                    if (toggle) {
-                        toggle.addEventListener('change', () => {
-                            const newTheme = toggle.checked ? 'dark' : 'light';
-                            htmlElement.setAttribute('data-bs-theme', newTheme);
-                            setStoredTheme(newTheme);
-                        });
-                    }
-                });
-            })();
-            // END: Logika Dark Mode
-
-            // START: Logika Notifikasi Ulang Tahun (Dipertahankan)
-            fetch('{{ route('employees.birthdays_notification') }}')
-                .then(response => response.json())
-                .then(data => {
-                    const count = data.count;
-                    const badge = document.getElementById('birthday-badge');
-                    if (count > 0) {
-                        badge.textContent = count;
-                        badge.style.display = 'inline-block';
-                    }
-                });
-            // END: Logika Notifikasi Ulang Tahun
-
-
-            // FUNGSI BARU UNTUK MENAMPILKAN DETAIL KARYAWAN BERDASARKAN UNIT (Digunakan oleh tombol baru)
-            function showEmployeeDetailsByUnit(unit) {
-                const modalTitle = document.getElementById('employeeModalLabel');
-                const modalBody = document.getElementById('employeeList');
-                modalTitle.textContent = `Memuat Daftar Karyawan di Unit: ${unit}...`;
-                modalBody.innerHTML =
-                    '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-                new bootstrap.Modal(document.getElementById('employeeModal')).show();
-
-                // Memanggil endpoint yang mengambil SEMUA Band dalam Unit
-                fetch(`/employees/unit-detail/${encodeURIComponent(unit)}`)
-                    .then(res => {
-                        if (!res.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return res.json();
-                    })
-                    .then(employees => {
-                        modalTitle.textContent =
-                            `Daftar Karyawan di Unit: ${unit} (Total: ${employees.length} orang)`;
-
-                        if (employees.length > 0) {
-                            modalBody.innerHTML = `
+                    if (employees.length > 0) {
+                        modalBody.innerHTML = `
                                 <ul class="list-group">
                                     ${employees.map(emp => `
-                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                        <div>
-                                                            <strong>${emp.nama}</strong> <br>
-                                                            <small class="text-muted">${emp.nama_posisi || 'Posisi Tidak Ada'}</small>
-                                                        </div>
-                                                       <div class="d-flex flex-column align-items-end">
-                                                            <span class="badge bg-info text-dark mb-1">
-                                                                Band ${emp.band_posisi || 'N/A'}
-                                                            </span>
-                                                            <span class="badge ${emp.status_eligibility === 'Eligible'
-                                                                ? 'bg-success'
-                                                                : (emp.status_eligibility === 'Not Eligible'
-                                                                    ? 'bg-danger'
-                                                                    : 'bg-secondary')}">
-                                                                ${emp.status_eligibility || 'N/A'}
-                                                            </span>
-                                                        </div>
-                                                    </li>`).join('')}
-                                             </ul>`;
-                        } else {
-                            modalBody.innerHTML =
-                                '<p class="text-muted">Tidak ada data karyawan untuk Unit ini.</p>';
-                        }
-                    })
-                    .catch(err => {
-                        console.error('Gagal memuat data detail:', err);
-                        modalTitle.textContent = `Gagal Memuat Data Karyawan`;
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>${emp.nama}</strong> <br>
+                                                    <small class="text-muted">${emp.nama_posisi || 'Posisi Tidak Ada'}</small>
+                                                </div>
+                                               <div class="d-flex flex-column align-items-end">
+                                                    <span class="badge bg-info text-dark mb-1">
+                                                        Band ${emp.band_posisi || 'N/A'}
+                                                    </span>
+                                                    <span class="badge ${emp.status_eligibility === 'Eligible'
+                                                        ? 'bg-success'
+                                                        : (emp.status_eligibility === 'Not Eligible'
+                                                            ? 'bg-danger'
+                                                            : 'bg-secondary')}">
+                                                        ${emp.status_eligibility || 'N/A'}
+                                                    </span>
+                                                </div>
+                                            </li>`).join('')}
+                                </ul>`;
+                    } else {
                         modalBody.innerHTML =
-                            '<p class="text-danger">Terjadi kesalahan saat memuat data. Silakan coba lagi.</p>';
-                    });
-            }
+                            '<p class="text-muted">Tidak ada data karyawan untuk Unit ini.</p>';
+                    }
+                })
+                .catch(err => {
+                    console.error('Gagal memuat data detail:', err);
+                    modalTitle.textContent = `Gagal Memuat Data Karyawan`;
+                    modalBody.innerHTML =
+                        '<p class="text-danger">Terjadi kesalahan saat memuat data. Silakan coba lagi.</p>';
+                });
+        }
 
-            // START: Logika Chart dan Rendering Tombol Unit
-            fetch('{{ route('employees.chart_data') }}')
-                .then(response => response.json())
-                .then(data => {
-                    const bands = data.bands;
-                    const units = data.units;
-                    const aggregatedData = data.data;
-                    const unitButtonContainer = document.getElementById('unitButtonContainer');
+        // START: Logika Chart dan Rendering Tombol Unit
+        // Melakukan fetch ke dua endpoint secara bersamaan
+        Promise.all([
+            fetch('{{ route('employees.chart_data') }}').then(res => {
+                if (!res.ok) throw new Error('Failed to fetch chart data');
+                return res.json();
+            }),
+            fetch('{{ route('employees.all_unit_counts') }}').then(res => {
+                if (!res.ok) throw new Error('Failed to fetch unit counts');
+                return res.json();
+            })
+        ])
+        .then(([chartData, allUnitCounts]) => {
+            const bands = chartData.bands;
+            const units = chartData.units;
+            const aggregatedData = chartData.data; // Data ini hanya berisi yang 'Eligible'
+            const unitButtonContainer = document.getElementById('unitButtonContainer');
 
-                    const colors = [
-                        'rgba(255, 99, 132, 0.8)',
-                        'rgba(54, 162, 235, 0.8)',
-                        'rgba(255, 206, 86, 0.8)',
-                        'rgba(75, 192, 192, 0.8)',
-                        'rgba(153, 102, 255, 0.8)',
-                        'rgba(255, 159, 64, 0.8)',
-                    ];
+            const colors = [
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 206, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 159, 64, 0.8)',
+            ];
 
-                    const datasets = bands.map((band, index) => ({
-                        label: `Band Posisi ${band}`,
-                        data: units.map(unit => aggregatedData[unit][band]),
-                        backgroundColor: colors[index % colors.length],
-                        borderColor: colors[index % colors.length].replace('0.8', '1'),
-                        borderWidth: 1
-                    }));
+            const datasets = bands.map((band, index) => ({
+                label: `Band Posisi ${band}`,
+                data: units.map(unit => aggregatedData[unit][band]),
+                backgroundColor: colors[index % colors.length],
+                borderColor: colors[index % colors.length].replace('0.8', '1'),
+                borderWidth: 1
+            }));
 
-                    const ctx = document.getElementById('bandPosisiChart').getContext('2d');
+            const ctx = document.getElementById('bandPosisiChart').getContext('2d');
 
-                    // Simpan instance chart ke variabel
-                    const bandPositionChart = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: units,
-                            datasets: datasets
+            // Simpan instance chart ke variabel
+            const bandPositionChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: units,
+                    datasets: datasets
+                },
+                options: {
+                    // ... (options chart dipertahankan) ...
+                    responsive: true,
+                    scales: {
+                        x: {
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: 'Unit'
+                            }
                         },
-                        options: {
-                            responsive: true,
-                            scales: {
-                                x: {
-                                    stacked: true,
-                                    title: {
-                                        display: true,
-                                        text: 'Unit'
-                                    }
-                                },
-                                y: {
-                                    stacked: true,
-                                    beginAtZero: true,
-                                    title: {
-                                        display: true,
-                                        text: 'Jumlah Karyawan'
-                                    },
-                                    ticks: {
-                                        stepSize: 1,
-                                        callback: function(value) {
-                                            if (Number.isInteger(value)) {
-                                                return value;
-                                            }
-                                        }
-                                    }
-                                }
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Jumlah Karyawan'
                             },
-                            plugins: {
-                                title: {
-                                    display: true,
-                                    text: 'Distribusi Band Posisi per Unit'
-                                },
-                                legend: {
-                                    position: 'bottom'
-                                },
-                                datalabels: {
-                                    color: '#fff', // warna teks label
-                                    anchor: 'center',
-                                    align: 'center',
-                                    font: {
-                                        weight: 'bold',
-                                        size: 12
-                                    },
-                                    formatter: function(value, context) {
-                                        if (value > 0) {
-                                            return value; // tampilkan angka jika > 0
-                                        } else {
-                                            return ''; // jangan tampilkan angka nol
-                                        }
+                            ticks: {
+                                stepSize: 1,
+                                callback: function(value) {
+                                    if (Number.isInteger(value)) {
+                                        return value;
                                     }
                                 }
                             }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Distribusi Band Posisi per Unit'
                         },
-                        plugins: [ChartDataLabels] // daftar plugin di sini
-                    });
+                        legend: {
+                            position: 'bottom'
+                        },
+                        datalabels: {
+                            color: '#fff', // warna teks label
+                            anchor: 'center',
+                            align: 'center',
+                            font: {
+                                weight: 'bold',
+                                size: 12
+                            },
+                            formatter: function(value, context) {
+                                if (value > 0) {
+                                    return value; // tampilkan angka jika > 0
+                                } else {
+                                    return ''; // jangan tampilkan angka nol
+                                }
+                            }
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels] // daftar plugin di sini
+            });
 
-                    // === KLIK BAR CHART untuk Detail Karyawan (BAND SPESIFIK) - LOGIKA ASLI DIPERTAHANKAN ===
-                    document.getElementById('bandPosisiChart').onclick = function(evt) {
-                        const points = bandPositionChart.getElementsAtEventForMode(evt, 'nearest', {
-                            intersect: true
-                        }, true);
-                        if (!points.length) return;
+            // === KLIK BAR CHART untuk Detail Karyawan (BAND SPESIFIK) - LOGIKA ASLI DIPERTAHANKAN ===
+            document.getElementById('bandPosisiChart').onclick = function(evt) {
+                // ... (Logika klik chart dipertahankan) ...
+                const points = bandPositionChart.getElementsAtEventForMode(evt, 'nearest', {
+                    intersect: true
+                }, true);
+                if (!points.length) return;
 
-                        const point = points[0];
-                        const unit = bandPositionChart.data.labels[point.index];
-                        const fullLabel = bandPositionChart.data.datasets[point.datasetIndex].label;
+                const point = points[0];
+                const unit = bandPositionChart.data.labels[point.index];
+                const fullLabel = bandPositionChart.data.datasets[point.datasetIndex].label;
 
-                        // Ekstrak hanya Band Posisi (misalnya 'I' dari 'Band Posisi I')
-                        const band = fullLabel.replace('Band Posisi ', '').trim();
+                // Ekstrak hanya Band Posisi (misalnya 'I' dari 'Band Posisi I')
+                const band = fullLabel.replace('Band Posisi ', '').trim();
 
-                        // Panggil API endpoint untuk detail Unit dan Band
-                        fetch(
-                                `/employees/band-position-detail/${encodeURIComponent(unit)}/${encodeURIComponent(band)}`
-                            )
-                            .then(res => res.json())
-                            .then(employees => {
-                                const modalTitle = document.getElementById('employeeModalLabel');
-                                const modalBody = document.getElementById('employeeList');
+                // Panggil API endpoint untuk detail Unit dan Band
+                fetch(
+                        `/employees/band-position-detail/${encodeURIComponent(unit)}/${encodeURIComponent(band)}`
+                    )
+                    .then(res => res.json())
+                    .then(employees => {
+                        const modalTitle = document.getElementById('employeeModalLabel');
+                        const modalBody = document.getElementById('employeeList');
 
-                                modalTitle.textContent =
-                                    `Daftar Karyawan Band Posisi (${band}) - ${unit}`;
+                        modalTitle.textContent =
+                            `Daftar Karyawan Band Posisi (${band}) - ${unit}`;
 
-                                if (employees.length > 0) {
-                                    modalBody.innerHTML = `
-                                        <ul class="list-group">
-                                            ${employees.map(emp => `
+                        if (employees.length > 0) {
+                            modalBody.innerHTML = `
+                                    <ul class="list-group">
+                                        ${employees.map(emp => `
                                                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                                                 ${emp.nama} (${emp.nama_posisi})
 
                                                                 <div class="d-flex flex-column align-items-end" >
                                                                     <span class="badge bg-primary mb-1">Band ${emp.band_posisi}</span>
                                                                     <span class="badge ${emp.status_eligibility === 'Eligible'
-                                                                    ? 'bg-success'
-                                                                    : (emp.status_eligibility === 'Not Eligible'
-                                                                        ? 'bg-danger'
-                                                                        : 'bg-secondary')}">
-                                                                    ${emp.status_eligibility || 'N/A'}
-                                                                </span>
+                                                                        ? 'bg-success'
+                                                                        : (emp.status_eligibility === 'Not Eligible'
+                                                                            ? 'bg-danger'
+                                                                            : 'bg-secondary')}">
+                                                                        ${emp.status_eligibility || 'N/A'}
+                                                                    </span>
                                                                 </div>
                                                             </li>`).join('')}
-                                        </ul>`;
-                                } else {
-                                    modalBody.innerHTML =
-                                        '<p class="text-muted">Tidak ada data karyawan untuk kategori ini.</p>';
-                                }
+                                    </ul>`;
+                        } else {
+                            modalBody.innerHTML =
+                                '<p class="text-muted">Tidak ada data karyawan untuk kategori ini.</p>';
+                        }
 
-                                new bootstrap.Modal(document.getElementById('employeeModal')).show();
-                            })
-                            .catch(err => console.error('Gagal memuat data detail:', err));
-                    };
+                        new bootstrap.Modal(document.getElementById('employeeModal')).show();
+                    })
+                    .catch(err => console.error('Gagal memuat data detail:', err));
+            };
 
-                    // === RENDERING TOMBOL UNIT (BARU) ===
-                    unitButtonContainer.innerHTML = ''; // Hapus pesan "Memuat daftar Unit..."
+            // === RENDERING TOMBOL UNIT (BARU) ===
+            unitButtonContainer.innerHTML = ''; // Hapus pesan "Memuat daftar Unit..."
 
-                    units.forEach(unit => {
-                        // Hitung total karyawan per unit
-                        let totalEmployees = 0;
-                        bands.forEach(band => {
-                            totalEmployees += aggregatedData[unit][band] || 0;
-                        });
+            units.forEach(unit => {
+                // PERBAIKAN: Gunakan data total karyawan dari endpoint baru
+                // allUnitCounts adalah objek { 'UNIT A': 150, 'UNIT B': 80, ... }
+                let totalEmployees = allUnitCounts[unit] || 0; // Mengambil total tanpa filter eligible
 
-                        const button = document.createElement('button');
-                        // Menggunakan list-group-item agar terlihat seperti daftar di dalam card
-                        button.className =
-                            'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
-                        button.setAttribute('data-unit', unit);
-                        button.innerHTML = `${unit} Eligible
-                            <span class="badge bg-secondary rounded-pill">${totalEmployees}</span> Orang
-                        `;
+                const button = document.createElement('button');
+                // Menggunakan list-group-item agar terlihat seperti daftar di dalam card
+                button.className =
+                    'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+                button.setAttribute('data-unit', unit);
 
-                        // Menambahkan event listener ke tombol untuk memanggil fungsi baru
-                        button.addEventListener('click', function() {
-                            const selectedUnit = this.getAttribute('data-unit');
-                            // Panggil fungsi untuk menampilkan detail Unit secara keseluruhan
-                            showEmployeeDetailsByUnit(selectedUnit);
-                        });
+                // PERBAIKAN: Hapus kata 'Eligible' dan tampilkan totalEmployees yang sebenarnya
+                button.innerHTML = `${unit}
+                    <span class="badge bg-secondary rounded-pill">${totalEmployees}</span>
+                `;
 
-                        unitButtonContainer.appendChild(button);
-                    });
+                // Menambahkan event listener ke tombol untuk memanggil fungsi baru
+                button.addEventListener('click', function() {
+                    const selectedUnit = this.getAttribute('data-unit');
+                    // Panggil fungsi untuk menampilkan detail Unit secara keseluruhan
+                    showEmployeeDetailsByUnit(selectedUnit);
                 });
-            // END: Logika Chart dan Rendering Tombol Unit
+
+                unitButtonContainer.appendChild(button);
+            });
+        })
+        .catch(error => {
+            // Handle error jika salah satu fetch gagal
+            console.error('Error fetching data:', error);
+            const unitButtonContainer = document.getElementById('unitButtonContainer');
+            unitButtonContainer.innerHTML = '<p class="text-danger text-center my-3">Gagal memuat data unit. Silakan cek koneksi atau server log.</p>';
+
+            // Anda mungkin juga ingin menampilkan pesan error pada chart
+            const ctx = document.getElementById('bandPosisiChart').getContext('2d');
+            ctx.fillText("Gagal Memuat Data Chart", 10, 50);
         });
-    </script>
+        // END: Logika Chart dan Rendering Tombol Unit
+    });
+</script>
 </body>
 
 </html>

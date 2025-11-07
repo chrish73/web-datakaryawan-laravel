@@ -40,6 +40,8 @@ Route::get('/employees/birthdays/upcoming', [EmployeeController::class, 'upcomin
 Route::get('/employees/birthdays/notification', [EmployeeController::class, 'getTodayBirthdaysNotification'])->name('employees.birthdays_notification');
 // --- END: NEW BIRTHDAY ROUTES ---
 
+Route::get('/employees/all-unit-counts', [EmployeeController::class, 'getAllUnitEmployeeCounts'])->name('employees.all_unit_counts');
+
 
 Route::get('/employees/age-group-detail/{unit}/{group}', [EmployeeController::class, 'getAgeGroupDetails'])
     ->name('employees.age_group_detail');
