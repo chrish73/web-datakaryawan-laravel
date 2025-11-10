@@ -1,6 +1,5 @@
 <?php
 // chrish73/web-datakaryawan-laravel/web-datakaryawan-laravel-a9e5ba7e92801b6f13d23cc83551ccb244f61a1a/routes/web.php
-
 use App\Http\Controllers\EmployeeController;
 use Illuminate\Support\Facades\Route;
 
@@ -10,9 +9,7 @@ Route::post('/employees/import', [EmployeeController::class, 'import'])->name('e
 
 // Route Band Posisi
 Route::get('/employees/chart-data', [EmployeeController::class, 'bandPositionChartData'])->name('employees.chart_data');
-Route::get('/employees', function () {
-    return view('employees.chart'); // Route view band posisi
-})->name('employees.chart');
+Route::get('/employees', function () {return view('employees.chart');})->name('employees.chart');
 
 
 // Route untuk MENGAMBIL DATA (API)
@@ -31,22 +28,19 @@ Route::get('/employees/band', function () {
 })->name('employees.band_duration_chart');
 
 
-Route::post('/employees/import-birthday', [EmployeeController::class, 'importBirthday'])->name('employees.import_birthday');
-
-
 // --- START: NEW BIRTHDAY ROUTES ---
+Route::post('/employees/import-birthday', [EmployeeController::class, 'importBirthday'])->name('employees.import_birthday');
 Route::get('/employees/birthdays/today', [EmployeeController::class, 'todayBirthdays'])->name('employees.today_birthdays');
 Route::get('/employees/birthdays/upcoming', [EmployeeController::class, 'upcomingBirthdays'])->name('employees.upcoming_birthdays');
 Route::get('/employees/birthdays/notification', [EmployeeController::class, 'getTodayBirthdaysNotification'])->name('employees.birthdays_notification');
-// --- END: NEW BIRTHDAY ROUTES ---
 
 Route::get('/employees/all-unit-counts', [EmployeeController::class, 'getAllUnitEmployeeCounts'])->name('employees.all_unit_counts');
-
 
 Route::get('/employees/age-group-detail/{unit}/{group}', [EmployeeController::class, 'getAgeGroupDetails'])
     ->name('employees.age_group_detail');
 Route::get('employees/band-duration-detail/{unit}/{group}', [EmployeeController::class, 'getBandDurationDetails']);
 Route::get('employees/unit-detail/{unit}', [EmployeeController::class, 'getUnitDetails']);
 Route::get('employees/band-position-detail/{unit}/{band}', [EmployeeController::class, 'getBandPositionDetails']);
+
 Route::get('/employees/export', [EmployeeController::class, 'export'])->name('employees.export');
 Route::post('/employees/import-tc', [EmployeeController::class, 'importTc'])->name('employees.import_tc');

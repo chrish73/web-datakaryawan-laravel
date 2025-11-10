@@ -12,14 +12,10 @@ class EmployeesExport implements FromCollection, WithHeadings
     {
         // Pilih semua kolom yang ingin diexport KECUALI created_at dan updated_at
         return Employee::select([
-            'id',
             'tahun',
             'bulan',
             'nik',
             'nama',
-            'tgl_lahir',
-            'kota_lahir',
-            'nama_jalan',
             'jenis_kelamin',
             'nama_agama',
             'usia',
@@ -93,14 +89,10 @@ class EmployeesExport implements FromCollection, WithHeadings
     {
         // Headings harus disesuaikan dengan kolom yang dipilih di atas
         return [
-            'id',
             'tahun',
             'bulan',
             'nik',
             'nama',
-            'tgl_lahir',
-            'kota_lahir',
-            'nama_jalan',
             'jenis_kelamin',
             'nama_agama',
             'usia',

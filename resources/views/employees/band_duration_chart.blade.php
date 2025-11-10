@@ -13,14 +13,22 @@
     {{-- CSS tambahan --}}
     <link rel="stylesheet" href="{{ asset('css/stchart.css') }}">
     <style>
-        #durationFilterContainer label {
+        /* Gaya umum untuk container filter */
+        #durationFilterContainer label,
+        #bandFilterContainer label {
             cursor: pointer;
             font-weight: 500;
         }
 
-        #durationFilterContainer input {
+        #durationFilterContainer input,
+        #bandFilterContainer input {
             transform: scale(1.2);
             margin-right: 5px;
+        }
+
+        /* Gaya untuk menata checkbox dalam baris */
+        .form-check-inline {
+            margin-right: 1.5rem;
         }
     </style>
 </head>
@@ -83,10 +91,17 @@
         <h3 class="page-title"><i class="bi bi-hourglass-split me-2"></i> Distribusi Karyawan berdasarkan Durasi Band
             Posisi per Unit</h3>
 
-        {{-- Filter Checkbox --}}
+        {{-- Filter Checkbox Durasi Band --}}
         <div class="mb-3">
             <label class="form-label fw-semibold">Pilih Durasi Band yang Ingin Ditampilkan:</label>
             <div id="durationFilterContainer" class="d-flex flex-wrap gap-3"></div>
+        </div>
+
+        {{-- FILTER BARU: Band Posisi --}}
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Pilih Band Posisi yang Ingin Ditampilkan (I, II, III, dst):</label>
+            <div id="bandFilterContainer" class="d-flex flex-wrap gap-3">
+            </div>
         </div>
 
         {{-- Card Chart --}}
@@ -154,35 +169,51 @@
                     }
                 });
 
-            // Ambil data chart
-            fetch('{{ route('employees.band_duration_data') }}')
-                .then(res => res.json())
-                .then(data => {
-                    const durationGroups = data.duration_groups;
-                    const units = data.units;
-                    const aggregatedData = data.data;
+            let bandDurationChart = null;
+            let allDurationDatasets = []; // Menyimpan semua dataset durasi dari data yang baru diambil
+            const durationFilterContainer = document.getElementById('durationFilterContainer');
+            const bandFilterContainer = document.getElementById('bandFilterContainer');
+            const chartCtx = document.getElementById('bandDurationChart').getContext('2d');
 
-                    const colors = [
-                        'rgba(0, 150, 136, 0.8)',
-                        'rgba(255, 152, 0, 0.8)',
-                        'rgba(192, 57, 43, 0.8)',
-                        'rgba(300, 255, 20, 0.8)',
-                    ];
+            const colors = [
+                'rgba(0, 150, 136, 0.8)',
+                'rgba(255, 152, 0, 0.8)',
+                'rgba(192, 57, 43, 0.8)',
+                'rgba(300, 255, 20, 0.8)',
+            ];
 
-                    const datasets = durationGroups.map((group, i) => ({
-                        label: group,
-                        data: units.map(unit => aggregatedData[unit][group]),
-                        backgroundColor: colors[i % colors.length],
-                        borderColor: colors[i % colors.length].replace('0.8', '1'),
-                        borderWidth: 1
-                    }));
+            // Fungsi untuk membuat dan memperbarui chart
+            function updateChart(data) {
+                const durationGroups = data.duration_groups;
+                const units = data.units;
+                const aggregatedData = data.data;
 
-                    const ctx = document.getElementById('bandDurationChart').getContext('2d');
-                    const bandDurationChart = new Chart(ctx, {
+                // 1. Buat semua datasets berdasarkan data yang baru diambil
+                allDurationDatasets = durationGroups.map((group, i) => ({
+                    label: group,
+                    data: units.map(unit => aggregatedData[unit][group]),
+                    backgroundColor: colors[i % colors.length],
+                    borderColor: colors[i % colors.length].replace('0.8', '1'),
+                    borderWidth: 1
+                }));
+
+                // 2. Terapkan Filter Durasi Band (Client-Side)
+                const activeDurationGroups = Array.from(durationFilterContainer.querySelectorAll(
+                    'input[type="checkbox"]:checked')).map(c => c.value);
+                const filteredDatasets = allDurationDatasets.filter(ds => activeDurationGroups.includes(ds.label));
+
+                if (bandDurationChart) {
+                    // Perbarui chart yang sudah ada
+                    bandDurationChart.data.labels = units;
+                    bandDurationChart.data.datasets = filteredDatasets;
+                    bandDurationChart.update();
+                } else {
+                    // Buat chart baru (Hanya terjadi saat inisialisasi awal)
+                    bandDurationChart = new Chart(chartCtx, {
                         type: 'bar',
                         data: {
                             labels: units,
-                            datasets
+                            datasets: filteredDatasets
                         },
                         options: {
                             responsive: true,
@@ -226,37 +257,7 @@
                         plugins: [ChartDataLabels]
                     });
 
-                    // === Checkbox Filter ===
-                    const container = document.getElementById('durationFilterContainer');
-                    durationGroups.forEach((group, index) => {
-                        const checkbox = document.createElement('input');
-                        checkbox.type = 'checkbox';
-                        checkbox.className = 'form-check-input';
-                        checkbox.id = `durationFilter-${index}`;
-                        checkbox.value = group;
-                        checkbox.checked = true;
-
-                        const label = document.createElement('label');
-                        label.className = 'form-check-label';
-                        label.setAttribute('for', `durationFilter-${index}`);
-                        label.textContent = group;
-
-                        container.appendChild(checkbox);
-                        container.appendChild(label);
-                    });
-
-                    // Event perubahan checkbox
-                    container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                        cb.addEventListener('change', () => {
-                            const active = Array.from(container.querySelectorAll(
-                                'input[type="checkbox"]:checked')).map(c => c.value);
-                            bandDurationChart.data.datasets = datasets.filter(ds => active
-                                .includes(ds.label));
-                            bandDurationChart.update();
-                        });
-                    });
-
-                    // Klik bar untuk detail
+                    // Siapkan event klik bar untuk modal detail (hanya sekali)
                     document.getElementById('bandDurationChart').onclick = evt => {
                         const points = bandDurationChart.getElementsAtEventForMode(evt, 'nearest', {
                             intersect: true
@@ -268,7 +269,8 @@
                         const group = bandDurationChart.data.datasets[point.datasetIndex].label;
 
                         fetch(
-                                `/employees/band-duration-detail/${encodeURIComponent(unit)}/${encodeURIComponent(group)}`)
+                                `/employees/band-duration-detail/${encodeURIComponent(unit)}/${encodeURIComponent(group)}`
+                                )
                             .then(res => res.json())
                             .then(employees => {
                                 const modalTitle = document.getElementById('employeeModalLabel');
@@ -277,16 +279,129 @@
 
                                 modalBody.innerHTML = employees.length ?
                                     `<ul class="list-group">${employees.map(emp => `
-                                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                ${emp.nama}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>${emp.nama}</strong><br>
+                                            </div>
+                                            <div class="ms-auto text-end">
                                                 <span class="badge bg-primary rounded-pill">${emp.lama_band_posisi} bulan</span>
-                                            </li>`).join('')}</ul>` :
-                                    '<p class="text-muted">Tidak ada data karyawan untuk kategori ini.</p>';
+                                                <span class="badge bg-secondary rounded-pill">Band ${emp.band_posisi || 'N/A'}</span>
+                                            </div>
+                                        </li>`).join('')}</ul>` :
+                                        '<p class="text-muted">Tidak ada data karyawan untuk kategori ini.</p>';
 
                                 new bootstrap.Modal(document.getElementById('employeeModal')).show();
                             });
                     };
+                }
+            }
+
+            // Fungsi untuk membuat elemen checkbox secara dinamis
+            function generateCheckboxes(container, items, type) {
+                container.innerHTML = ''; // Hapus elemen yang ada
+                items.forEach((item, index) => {
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'form-check-input';
+                    checkbox.id = `${type}Filter-${index}`;
+                    checkbox.value = item;
+                    checkbox.checked = true; // Default: semua dipilih
+
+                    const label = document.createElement('label');
+                    label.className = 'form-check-label';
+                    label.setAttribute('for', `${type}Filter-${index}`);
+                    label.textContent = item;
+
+                    const div = document.createElement('div');
+                    div.className = 'form-check form-check-inline';
+                    div.appendChild(checkbox);
+                    div.appendChild(label);
+
+                    container.appendChild(div);
                 });
+            }
+
+            // Fungsi untuk mengambil data baru dari server berdasarkan filter Band Posisi
+            function fetchDataAndRedrawChart() {
+                const activeBands = Array.from(bandFilterContainer.querySelectorAll(
+                    'input[type="checkbox"]:checked')).map(c => c.value);
+
+                // Jika tidak ada band yang dipilih, kirim array kosong agar controller mengembalikan data kosong
+                if (activeBands.length === 0) {
+                    updateChart({
+                        units: [],
+                        duration_groups: allDurationDatasets.map(ds => ds.label),
+                        data: {}
+                    });
+                    return;
+                }
+
+                // Bangun query string untuk Band Posisi yang dipilih
+                const bandQuery = activeBands.map(band => `bands[]=${encodeURIComponent(band)}`).join('&');
+                const fetchUrl = `{{ route('employees.band_duration_data') }}${bandQuery ? '?' + bandQuery : ''}`;
+
+                fetch(fetchUrl)
+                    .then(res => res.json())
+                    .then(data => {
+                        updateChart(data);
+                        // Setelah fetch, pastikan filter durasi tetap terikat pada data yang baru
+                        setupDurationFilterListener();
+                    })
+                    .catch(error => console.error('Error fetching filtered data:', error));
+            }
+
+            // Fungsi untuk menyiapkan event listener Durasi Band (Client-Side)
+            function setupDurationFilterListener() {
+                // Hapus listener yang mungkin sudah ada
+                durationFilterContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    cb.removeEventListener('change', handleDurationChange);
+                });
+
+                // Tambahkan listener baru
+                durationFilterContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    cb.addEventListener('change', handleDurationChange);
+                });
+            }
+
+            // Handler perubahan filter Durasi Band
+            function handleDurationChange() {
+                const active = Array.from(durationFilterContainer.querySelectorAll(
+                    'input[type="checkbox"]:checked')).map(c => c.value);
+
+                // Terapkan filter durasi ke datasets yang sudah ada (dari fetch terakhir)
+                const filteredDatasets = allDurationDatasets.filter(ds => active.includes(ds.label));
+
+                if (bandDurationChart) {
+                    bandDurationChart.data.datasets = filteredDatasets;
+                    bandDurationChart.update();
+                }
+            }
+
+
+            // Ambil data chart awal dan siapkan filter
+            fetch('{{ route('employees.band_duration_data') }}')
+                .then(res => res.json())
+                .then(data => {
+
+                    // 1. Setup Filter Durasi Band (Client-Side)
+                    generateCheckboxes(durationFilterContainer, data.duration_groups, 'duration');
+                    setupDurationFilterListener(); // Pasang listener untuk filter durasi
+
+                    // 2. Setup Filter Band Posisi (Server-Side)
+                    // Ambil daftar semua band yang valid dari respons controller
+                    const allBands = data.all_bands || ['I', 'II', 'III', 'IV', 'V', 'VI'];
+                    generateCheckboxes(bandFilterContainer, allBands, 'band');
+
+                    // Pasang listener untuk filter band (akan memicu re-fetch data)
+                    bandFilterContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                        cb.addEventListener('change', fetchDataAndRedrawChart);
+                    });
+
+                    // 3. Render Chart Awal
+                    updateChart(data);
+
+                })
+                .catch(error => console.error('Error fetching initial data:', error));
         });
     </script>
 </body>

@@ -138,52 +138,91 @@ class EmployeeController extends Controller
         ]);
     }
 
-    public function bandPositionDurationChartData()
+    public function bandPositionDurationChartData(Request $request)
     {
-        // Logika CASE untuk mengelompokkan lama_bandposisi (dalam bulan)
-        // < 2 tahun = < 24 bulan
-        // 2 - 5 tahun = 24 - 60 bulan
-        // > 5 tahun = > 60 bulan
+        // 1️⃣ Tentukan band posisi yang valid
+        $validBands = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+        $selectedBands = $request->input('bands', $validBands);
+        $filteredBands = array_intersect($selectedBands, $validBands);
+
+        // 2️⃣ Tentukan kelompok durasi yang valid
+        $validDurations = ['< 2 Tahun', '2 - 5 Tahun', '5 - 10 Tahun', '> 10 Tahun'];
+        $selectedDurations = $request->input('durations', $validDurations);
+        $filteredDurations = array_intersect($selectedDurations, $validDurations);
+
+        // Jika tidak ada filter aktif, kirim data kosong
+        if (empty($filteredBands) || empty($filteredDurations)) {
+            return response()->json([
+                'units' => [],
+                'duration_groups' => $validDurations,
+                'data' => [],
+                'all_bands' => $validBands,
+            ]);
+        }
+
+        // 3️⃣ Mapping durasi → rentang bulan
+        $durationRanges = [
+            '< 2 Tahun'   => [0, 23],
+            '2 - 5 Tahun' => [24, 60],
+            '5 - 10 Tahun' => [61, 120],
+            '> 10 Tahun'  => [121, 999],
+        ];
+
+        // 4️⃣ Buat query dinamis
+        $query = Employee::query()
+            ->whereNotNull('lama_band_posisi')
+            ->whereIn('band_posisi', $filteredBands)
+            ->where(function ($q) use ($filteredDurations, $durationRanges) {
+                foreach ($filteredDurations as $dur) {
+                    if (isset($durationRanges[$dur])) {
+                        [$min, $max] = $durationRanges[$dur];
+                        $q->orWhereBetween('lama_band_posisi', [$min, $max]);
+                    }
+                }
+            });
+
+        // 5️⃣ Kelompokkan berdasarkan UNIT dan durasi
         $durationGroupCase = "CASE
-                                WHEN lama_band_posisi < 24 THEN '< 2 Tahun'
-                                WHEN lama_band_posisi >= 24 AND lama_band_posisi <= 60 THEN '2 - 5 Tahun'
-                                WHEN lama_band_posisi > 60 AND lama_band_posisi <= 120 THEN '5 - 10 Tahun'
-                                WHEN lama_band_posisi > 121 THEN '> 10 Tahun'
-                                ELSE 'Lainnya'
-                            END";
+        WHEN lama_band_posisi < 24 THEN '< 2 Tahun'
+        WHEN lama_band_posisi BETWEEN 24 AND 60 THEN '2 - 5 Tahun'
+        WHEN lama_band_posisi BETWEEN 61 AND 120 THEN '5 - 10 Tahun'
+        WHEN lama_band_posisi > 120 THEN '> 10 Tahun'
+        ELSE 'Lainnya'
+    END";
 
-        // 1. Mendapatkan data UNIT dan kelompok durasi yang dihitung, lalu menghitungnya
-        $data = Employee::select('UNIT', DB::raw("{$durationGroupCase} AS calculated_duration_group"), DB::raw('count(*) as count'))
-                        ->whereNotNull('lama_band_posisi') // Memastikan kolom lama_bandposisi ada nilainya
-                        ->groupBy('UNIT', DB::raw($durationGroupCase))
-                        ->orderBy('UNIT')
-                        ->get();
+        $data = $query->select(
+            'UNIT',
+            DB::raw("{$durationGroupCase} AS calculated_duration_group"),
+            DB::raw('COUNT(*) as count')
+        )
+        ->groupBy('UNIT', DB::raw($durationGroupCase))
+        ->orderBy('UNIT')
+        ->get();
 
-        // 2. Tentukan urutan Durasi yang diinginkan
-        $durationGroupsOrder = ['< 2 Tahun', '2 - 5 Tahun', '5 - 10 Tahun', '> 10 Tahun',];
-
+        // 6️⃣ Siapkan struktur untuk Chart
         $chartData = [];
         $units = $data->pluck('UNIT')->unique()->sort()->values();
 
-        // 3. Inisialisasi data dengan 0 dan mengisi hasil query
         foreach ($units as $unit) {
-            $chartData[$unit] = array_fill_keys($durationGroupsOrder, 0);
+            $chartData[$unit] = array_fill_keys($validDurations, 0);
         }
 
         foreach ($data as $item) {
             $group = $item->calculated_duration_group;
-            if (in_array($group, $durationGroupsOrder)) {
+            if (in_array($group, $validDurations)) {
                 $chartData[$item->UNIT][$group] = $item->count;
             }
         }
 
-        // 4. Mengembalikan data dalam format JSON
+        // 7️⃣ Kirim hasil ke frontend
         return response()->json([
             'units' => $units,
-            'duration_groups' => $durationGroupsOrder,
+            'duration_groups' => $validDurations,
             'data' => $chartData,
+            'all_bands' => $validBands,
         ]);
     }
+
 
     public function importBirthday(Request $request)
     {
@@ -232,9 +271,6 @@ class EmployeeController extends Controller
         return view('employees.birthdays', compact('employees'));
     }
 
-    /**
-     * Get data ulang tahun hari ini untuk notifikasi (JSON)
-     */
     public function getTodayBirthdaysNotification()
     {
         $today = Carbon::today();
@@ -257,9 +293,6 @@ class EmployeeController extends Controller
         ]);
     }
 
-    /**
-     * Upcoming birthdays (7 hari ke depan)
-     */
     public function upcomingBirthdays()
     {
         $today = Carbon::today();
@@ -304,7 +337,6 @@ class EmployeeController extends Controller
         return view('employees.upcoming_birthdays', compact('employees'));
     }
 
-
     public function getAgeGroupDetails($unit, $group)
     {
         $ageRanges = [
@@ -329,9 +361,6 @@ class EmployeeController extends Controller
         return response()->json($employees);
     }
 
-    /**
-     * Get detail karyawan berdasarkan UNIT dan kelompok Durasi Band Posisi (lama_band_posisi dalam bulan).
-     */
     public function getBandDurationDetails($unit, $group)
     {
         $durationRanges = [
@@ -351,15 +380,12 @@ class EmployeeController extends Controller
 
         $employees = \App\Models\Employee::where('UNIT', $unit)
             ->whereBetween('lama_band_posisi', [$minDuration, $maxDuration])
-            ->select('nama', 'lama_band_posisi')
+            ->select('nama', 'lama_band_posisi', 'band_posisi')
             ->orderBy('nama')
             ->get();
 
         return response()->json($employees);
     }
-
-
-    //  Get detail karyawan berdasarkan UNIT saja. (BARU)
 
     public function getUnitDetails($unit)
     {
@@ -370,7 +396,6 @@ class EmployeeController extends Controller
 
         return response()->json($employees);
     }
-
 
     public function getBandPositionDetails($unit, $band)
     {

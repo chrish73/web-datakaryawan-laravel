@@ -156,19 +156,19 @@
                             modalBody.innerHTML = `
                                 <ul class="list-group">
                                     ${employees.map(emp => `
-                                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <strong>${emp.nama}</strong><br>
-                                                    <small class="text-muted">${emp.nama_posisi || 'Posisi Tidak Ada'}</small>
-                                                </div>
-                                                <div class="d-flex flex-column align-items-end">
-                                                    <span class="badge bg-info text-dark mb-1">Band ${emp.band_posisi || 'N/A'}</span>
-                                                    <span class="badge ${emp.status_eligibility === 'Eligible' ? 'bg-success' :
-                                                        emp.status_eligibility === 'Not Eligible' ? 'bg-danger' : 'bg-secondary'}">
-                                                        ${emp.status_eligibility || 'N/A'}
-                                                    </span>
-                                                </div>
-                                            </li>`).join('')}
+                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong>${emp.nama}</strong><br>
+                                                        <small class="text-muted">${emp.nama_posisi || 'Posisi Tidak Ada'}</small>
+                                                    </div>
+                                                    <div class="d-flex flex-column align-items-end">
+                                                        <span class="badge bg-info text-dark mb-1">Band ${emp.band_posisi || 'N/A'}</span>
+                                                        <span class="badge ${emp.status_eligibility === 'Eligible' ? 'bg-success' :
+                                                            emp.status_eligibility === 'Not Eligible' ? 'bg-danger' : 'bg-secondary'}">
+                                                            ${emp.status_eligibility || 'N/A'}
+                                                        </span>
+                                                    </div>
+                                                </li>`).join('')}
                                 </ul>`;
                         } else {
                             modalBody.innerHTML =
@@ -279,7 +279,7 @@
                         // Panggil API endpoint untuk detail Unit dan Band
                         fetch(
                                 `/employees/band-position-detail/${encodeURIComponent(unit)}/${encodeURIComponent(band)}`
-                                )
+                            )
                             .then(res => res.json())
                             .then(employees => {
                                 const modalTitle = document.getElementById('employeeModalLabel');
@@ -293,24 +293,24 @@
                                     modalBody.innerHTML = `
                                         <ul class="list-group justify-content-between">
                                             ${employees.map(emp => `
-                                                        <li class="list-group-item d-flex justify-content-between">
-                                                            <div class="d-flex flex-column">
-                                                                <span class="fw-semibold">${emp.nama}</span>
-                                                                <small class="text-muted">${emp.nama_posisi}</small>
-                                                            </div>
-                                                             <div class="d-flex align-items-center gap-2">
-                                                                <span class="badge bg-primary">Band ${emp.band_posisi || 'N/A'}</span>
-                                                                <span class="badge ${
-                                                                    emp.status_eligibility === 'Eligible'
-                                                                        ? 'bg-success'
-                                                                        : emp.status_eligibility === 'Not Eligible'
-                                                                        ? 'bg-danger'
-                                                                        : 'bg-secondary'
-                                                                }">
-                                                                    ${emp.status_eligibility || 'N/A'}
-                                                                </span>
-                                                            </div>
-                                                        </li>`).join('')}
+                                                            <li class="list-group-item d-flex justify-content-between">
+                                                                <div class="d-flex flex-column">
+                                                                    <span class="fw-semibold">${emp.nama}</span>
+                                                                    <small class="text-muted">${emp.nama_posisi}</small>
+                                                                </div>
+                                                                 <div class="d-flex align-items-center gap-2">
+                                                                    <span class="badge bg-primary">Band ${emp.band_posisi || 'N/A'}</span>
+                                                                    <span class="badge ${
+                                                                        emp.status_eligibility === 'Eligible'
+                                                                            ? 'bg-success'
+                                                                            : emp.status_eligibility === 'Not Eligible'
+                                                                            ? 'bg-danger'
+                                                                            : 'bg-secondary'
+                                                                    }">
+                                                                        ${emp.status_eligibility || 'N/A'}
+                                                                    </span>
+                                                                </div>
+                                                            </li>`).join('')}
                                         </ul>`;
                                 } else {
                                     modalBody.innerHTML =
@@ -354,7 +354,7 @@
 
                     // === TOMBOL UNIT ===
                     unitButtonContainer.innerHTML = '';
-                    units.forEach(unit => {
+                    Object.keys(allUnitCounts).forEach(unit => {
                         const totalEmployees = allUnitCounts[unit] || 0;
                         const button = document.createElement('button');
                         button.className =
@@ -365,11 +365,26 @@
                         button.addEventListener('click', () => showEmployeeDetailsByUnit(unit));
                         unitButtonContainer.appendChild(button);
                     });
+
                 })
                 .catch(error => {
                     console.error(error);
                     document.getElementById('unitButtonContainer').innerHTML =
                         '<p class="text-danger text-center my-3">Gagal memuat data.</p>';
+                });
+
+             // Logika Notifikasi Ulang Tahun (untuk badge di Navbar)
+            fetch('{{ route('employees.birthdays_notification') }}')
+                .then(response => response.json())
+                .then(data => {
+                    const count = data.count;
+                    const badge = document.getElementById('birthday-badge');
+                    if (count > 0) {
+                        badge.textContent = count;
+                        badge.style.display = 'inline-block';
+                        // Panggil confetti HANYA jika ada ulang tahun
+                        launchConfetti();
+                    }
                 });
         });
     </script>
