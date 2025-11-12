@@ -42,6 +42,15 @@
                         <a class="nav-link {{ Request::is('employees/band') ? 'active' : '' }}"
                             href="/employees/band"><i class="bi bi-layers-fill me-1"></i>Lama Band Posisi</a>
                     </li>
+                    {{-- START: Tambahan Link Events --}}
+                    <li class="nav-item">
+                        {{-- Ganti 'events.training' dengan nama route yang sebenarnya jika berbeda --}}
+                        <a class="nav-link {{ Request::routeIs('employees.training_input') ? 'active' : '' }}"
+                            href="{{ route('employees.training_input') }}">
+                            <i class="bi bi-calendar-event-fill me-1"></i> History Events
+                        </a>
+                    </li>
+                    {{-- END: Tambahan Link Events --}}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('employees.today_birthdays') }}">
                             <i class="bi bi-gift-fill me-1"></i> Ulang Tahun Hari Ini <span id="birthday-badge" class="badge text-bg-warning rounded-pill ms-1" style="display: none;"></span>

@@ -44,3 +44,9 @@ Route::get('employees/band-position-detail/{unit}/{band}', [EmployeeController::
 
 Route::get('/employees/export', [EmployeeController::class, 'export'])->name('employees.export');
 Route::post('/employees/import-tc', [EmployeeController::class, 'importTc'])->name('employees.import_tc');
+
+Route::post('/employees/training/import-excel', [EmployeeController::class, 'importTraining'])->name('trainings.import_excel');
+Route::get('/employees/training', [EmployeeController::class, 'showTrainingInput'])->name('employees.training_input');
+Route::post('/employees/training', [EmployeeController::class, 'storeTraining'])->name('employees.store_training');
+Route::put('/trainings/{training}', [EmployeeController::class, 'updateTraining'])->name('trainings.update');
+Route::delete('/trainings/{training}', [EmployeeController::class, 'deleteTraining'])->name('trainings.delete');

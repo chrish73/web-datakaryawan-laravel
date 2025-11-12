@@ -82,4 +82,9 @@ class Employee extends Model
         'tc',
         'status_eligibility'
     ];
+
+    public function trainings()
+    {
+        return $this->hasMany(Training::class);
+    }
 }

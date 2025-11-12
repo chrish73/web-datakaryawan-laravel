@@ -10,7 +10,10 @@ use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\EmployeesImport;
 use App\Imports\TcUpdateImport;
+use App\Imports\TrainingsImport;
+use App\Models\Training;
 use Carbon\Carbon;
+use App\Models\Training as TrainingModel;
 
 class EmployeeController extends Controller
 {
@@ -98,10 +101,13 @@ class EmployeeController extends Controller
     {
         // Logika CASE untuk mengelompokkan usia
         $ageGroupCase = "CASE
-                            WHEN usia < 30 THEN '< 30'
-                            WHEN usia >= 30 AND usia <= 40 THEN '30 - 40'
-                            WHEN usia >= 41 AND usia <= 50 THEN '41 - 50'
-                            WHEN usia > 50 THEN '> 50'
+                            WHEN usia <= 30 THEN '< 30'
+                            WHEN usia >= 31 AND usia <= 35 THEN '31 - 35'
+                            WHEN usia >= 36 AND usia <= 40 THEN '36 - 40'
+                            WHEN usia >= 41 AND usia <= 45 THEN '41 - 45'
+                            WHEN usia >= 46 AND usia <= 50 THEN '46 - 50'
+                            WHEN usia >= 51 AND usia <= 54 THEN '51 - 54'
+                            WHEN usia >= 55 THEN '> 55'
                             ELSE 'Lainnya'
                         END";
 
@@ -113,7 +119,7 @@ class EmployeeController extends Controller
                         ->get();
 
         // 2. Tentukan urutan Kelompok Usia yang diinginkan
-        $ageGroupsOrder = ['< 30', '30 - 40', '41 - 50', '> 50'];
+        $ageGroupsOrder = ['< 30', '31 - 35', '36 - 40', '41 - 45', '46 - 50', '51 - 54' ,'> 55'];
 
         $chartData = [];
         $units = $data->pluck('UNIT')->unique()->sort()->values();
@@ -147,41 +153,20 @@ class EmployeeController extends Controller
 
         // 2️⃣ Tentukan kelompok durasi yang valid
         $validDurations = ['< 2 Tahun', '2 - 5 Tahun', '5 - 10 Tahun', '> 10 Tahun'];
-        $selectedDurations = $request->input('durations', $validDurations);
-        $filteredDurations = array_intersect($selectedDurations, $validDurations);
 
-        // Jika tidak ada filter aktif, kirim data kosong
-        if (empty($filteredBands) || empty($filteredDurations)) {
+        // Jika tidak ada filter Band Posisi aktif
+        if (empty($filteredBands)) {
             return response()->json([
                 'units' => [],
                 'duration_groups' => $validDurations,
                 'data' => [],
                 'all_bands' => $validBands,
+                'bands' => [], // Tambahkan bands kosong
+                'raw_data' => [] // Tambahkan raw_data kosong
             ]);
         }
 
-        // 3️⃣ Mapping durasi → rentang bulan
-        $durationRanges = [
-            '< 2 Tahun'   => [0, 23],
-            '2 - 5 Tahun' => [24, 60],
-            '5 - 10 Tahun' => [61, 120],
-            '> 10 Tahun'  => [121, 999],
-        ];
-
-        // 4️⃣ Buat query dinamis
-        $query = Employee::query()
-            ->whereNotNull('lama_band_posisi')
-            ->whereIn('band_posisi', $filteredBands)
-            ->where(function ($q) use ($filteredDurations, $durationRanges) {
-                foreach ($filteredDurations as $dur) {
-                    if (isset($durationRanges[$dur])) {
-                        [$min, $max] = $durationRanges[$dur];
-                        $q->orWhereBetween('lama_band_posisi', [$min, $max]);
-                    }
-                }
-            });
-
-        // 5️⃣ Kelompokkan berdasarkan UNIT dan durasi
+        // 3️⃣ Logika CASE untuk Durasi Band
         $durationGroupCase = "CASE
         WHEN lama_band_posisi < 24 THEN '< 2 Tahun'
         WHEN lama_band_posisi BETWEEN 24 AND 60 THEN '2 - 5 Tahun'
@@ -190,36 +175,32 @@ class EmployeeController extends Controller
         ELSE 'Lainnya'
     END";
 
-        $data = $query->select(
-            'UNIT',
-            DB::raw("{$durationGroupCase} AS calculated_duration_group"),
-            DB::raw('COUNT(*) as count')
-        )
-        ->groupBy('UNIT', DB::raw($durationGroupCase))
-        ->orderBy('UNIT')
-        ->get();
+        // 4️⃣ Query yang mengelompokkan data secara granular
+        $data = Employee::query()
+            ->whereNotNull('lama_band_posisi')
+            ->whereIn('band_posisi', $filteredBands) // Filter Band Posisi (Server-side)
+            ->select(
+                'UNIT',
+                'band_posisi', // Tambahkan grouping Band Posisi
+                DB::raw("{$durationGroupCase} AS calculated_duration_group"),
+                DB::raw('COUNT(*) as count')
+            )
+            ->groupBy('UNIT', 'band_posisi', DB::raw($durationGroupCase)) // Grouping granular
+            ->orderBy('UNIT')
+            ->orderBy('band_posisi')
+            ->get();
 
-        // 6️⃣ Siapkan struktur untuk Chart
-        $chartData = [];
+        // 5️⃣ Siapkan data yang diperlukan frontend untuk pivoting
         $units = $data->pluck('UNIT')->unique()->sort()->values();
+        $bandsInResult = $data->pluck('band_posisi')->unique()->sort()->values();
 
-        foreach ($units as $unit) {
-            $chartData[$unit] = array_fill_keys($validDurations, 0);
-        }
-
-        foreach ($data as $item) {
-            $group = $item->calculated_duration_group;
-            if (in_array($group, $validDurations)) {
-                $chartData[$item->UNIT][$group] = $item->count;
-            }
-        }
-
-        // 7️⃣ Kirim hasil ke frontend
+        // 6️⃣ Kirim raw data granular ke frontend
         return response()->json([
             'units' => $units,
-            'duration_groups' => $validDurations,
-            'data' => $chartData,
-            'all_bands' => $validBands,
+            'duration_groups' => $validDurations, // Untuk Checkbox Durasi
+            'bands' => $bandsInResult,            // Bands yang ditemukan di data
+            'all_bands' => $validBands,          // Semua bands yang mungkin (untuk Checkbox Band Posisi)
+            'raw_data' => $data->toArray()       // Data granular
         ]);
     }
 
@@ -340,10 +321,13 @@ class EmployeeController extends Controller
     public function getAgeGroupDetails($unit, $group)
     {
         $ageRanges = [
-            '< 30'    => [0, 29],
-            '30 - 40' => [30, 40],
-            '41 - 50' => [41, 50],
-            '> 50'    => [51, 200],
+            '< 30'    => [0, 30],
+            '31 - 35' => [31, 35],
+            '36 - 40' => [36, 40],
+            '41 - 45' => [41, 45],
+            '46 - 50' => [46, 50],
+            '51 - 54' => [51, 54],
+            '> 55'    => [55, 200],
         ];
 
         if (!isset($ageRanges[$group])) {
@@ -361,14 +345,14 @@ class EmployeeController extends Controller
         return response()->json($employees);
     }
 
-    public function getBandDurationDetails($unit, $group)
+    public function getBandDurationDetails($unit, $group, Request $request)
     {
+        // Rentang durasi harus sesuai dengan logika CASE di bandPositionDurationChartData
         $durationRanges = [
-            // Disesuaikan dengan logika di bandPositionDurationChartData
-            '< 2 Tahun'     => [0, 23],  // < 24 bulan
-            '2 - 5 Tahun'   => [24, 60], // 24 hingga 60 bulan
-            '5 - 10 Tahun'     => [61, 119], // > 60 bulan
-            '> 10 Tahun'     => [120, 999], // > 120 bulan
+            '< 2 Tahun'     => [0, 23],
+            '2 - 5 Tahun'   => [24, 60],
+            '5 - 10 Tahun'  => [61, 120],
+            '> 10 Tahun'    => [121, 999],
 
         ];
 
@@ -378,9 +362,17 @@ class EmployeeController extends Controller
 
         [$minDuration, $maxDuration] = $durationRanges[$group];
 
-        $employees = \App\Models\Employee::where('UNIT', $unit)
-            ->whereBetween('lama_band_posisi', [$minDuration, $maxDuration])
-            ->select('nama', 'lama_band_posisi', 'band_posisi')
+        // Membangun query dasar (Filter Durasi Band dan Unit)
+        $query = \App\Models\Employee::where('UNIT', $unit)
+            ->whereBetween('lama_band_posisi', [$minDuration, $maxDuration]);
+
+        // Menerapkan Filter Band Posisi (dari query parameter)
+        $selectedBands = $request->input('bands');
+        if (!empty($selectedBands) && is_array($selectedBands)) {
+            $query->whereIn('band_posisi', $selectedBands);
+        }
+
+        $employees = $query->select('nama', 'lama_band_posisi', 'band_posisi')
             ->orderBy('nama')
             ->get();
 
@@ -462,6 +454,122 @@ class EmployeeController extends Controller
 
         // Mengembalikan data dalam format JSON
         return response()->json($unitCounts);
+    }
+
+public function showTrainingInput(Request $request)
+    {
+        $search = $request->get('search'); // Ambil query pencarian
+
+        // 1. Ambil data Karyawan dengan Search dan Pagination
+        $employees = Employee::when($search, function ($query, $search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                  ->orWhere('nik', 'like', "%{$search}%");
+            });
+        })->with('trainings')->orderBy('nama')->simplePaginate(10); // Menggunakan simplePaginate(10)
+
+        // 2. Ambil semua nama pelatihan unik yang sudah ada
+        $uniqueTrainings = Training::select('nama_pelatihan')
+                                 ->distinct()
+                                 ->orderBy('nama_pelatihan')
+                                 ->pluck('nama_pelatihan');
+
+        // 3. Melewatkan semua variabel ke view
+        return view('employees.training', compact('employees', 'uniqueTrainings', 'search'));
+    }
+
+    public function storeTraining(Request $request)
+    {
+        $request->validate([
+            'employee_id'                    => 'required|exists:employees,id',
+            'trainings'                      => 'nullable|array',
+            'trainings.*.nama_pelatihan'     => 'required|string|max:255',
+            'trainings.*.tanggal_mulai'      => 'nullable|date',
+            'trainings.*.tanggal_selesai'    => 'nullable|date|after_or_equal:trainings.*.tanggal_mulai',
+            'trainings.*.status_pelatihan'   => 'nullable|in:Online,Offline',
+        ]);
+
+        $employee = Employee::findOrFail($request->employee_id);
+
+        if ($request->has('trainings') && is_array($request->trainings)) {
+            $trainingsToSave = [];
+            foreach ($request->trainings as $training) {
+                if (!empty($training['nama_pelatihan'])) {
+                    $trainingsToSave[] = new TrainingModel([ // <-- DIUBAH DI SINI
+                        'nama_pelatihan'   => $training['nama_pelatihan'],
+                        'tanggal_mulai'    => $training['tanggal_mulai'] ?? null,
+                        'tanggal_selesai'  => $training['tanggal_selesai'] ?? null,
+                        'status_pelatihan' => $training['status_pelatihan'] ?? null,
+                    ]);
+                }
+            }
+
+            if (!empty($trainingsToSave)) {
+                $employee->trainings()->saveMany($trainingsToSave);
+            }
+        }
+
+        return redirect()->back()->with('success', "Data pelatihan untuk {$employee->nama} berhasil disimpan!");
+    }
+
+    public function updateTraining(Request $request, Training $training)
+    {
+        $request->validate([
+            'nama_pelatihan' => 'required|string|max:255',
+            'tanggal_mulai' => 'nullable|date',
+            'tanggal_selesai' => 'nullable|date|after_or_equal:tanggal_mulai',
+            'status_pelatihan' => 'nullable|in:Online,Offline',
+        ]);
+
+        $training->update($request->only([
+            'nama_pelatihan',
+            'tanggal_mulai',
+            'tanggal_selesai',
+            'status_pelatihan'
+        ]));
+
+        return redirect()->route('employees.training_input')->with('success', "Data pelatihan '{$training->nama_pelatihan}' berhasil diperbarui!");
+    }
+
+    /**
+     * Menghapus catatan pelatihan tertentu.
+     * Menggunakan Route Model Binding untuk mendapatkan instance Training.
+     */
+    public function deleteTraining(Training $training)
+    {
+        $employeeName = $training->employee->nama;
+        $trainingName = $training->nama_pelatihan;
+
+        $training->delete();
+
+        return redirect()->back()->with('success', "Pelatihan '{$trainingName}' milik {$employeeName} berhasil dihapus.");
+    }
+
+    public function importTraining(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:csv,txt,xlsx,xls|max:4096',
+        ]);
+
+        try {
+            // Panggil kelas import baru
+            \Maatwebsite\Excel\Facades\Excel::import(new TrainingsImport, $request->file('file'));
+
+            return redirect()->route('employees.training_input')->with('success', 'Berhasil mengimpor data pelatihan dari Excel!');
+
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            $errors = [];
+            foreach ($failures as $failure) {
+                // Kumpulkan error validasi per baris
+                $errors[] = "Baris {$failure->row()}: " . implode(', ', $failure->errors());
+            }
+
+            return redirect()->route('employees.training_input')->with('error', 'Gagal impor karena validasi data: ' . implode('; ', $errors));
+
+        } catch (\Exception $e) {
+            return redirect()->route('employees.training_input')->with('error', 'Gagal impor: ' . $e->getMessage());
+        }
     }
 
 }

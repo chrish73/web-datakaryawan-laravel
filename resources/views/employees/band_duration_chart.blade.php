@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard HR - Data Durasi Band Posisi</title>
+    <title>Dashboard HR - Data Band Posisi dan Durasi</title>
     {{-- Memuat Bootstrap, Bootstrap Icons, dan Font Poppins --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
@@ -88,18 +88,18 @@
     {{-- Konten Utama --}}
     <div class="container main-content">
 
-        <h3 class="page-title"><i class="bi bi-hourglass-split me-2"></i> Distribusi Karyawan berdasarkan Durasi Band
-            Posisi per Unit</h3>
+        <h3 class="page-title"><i class="bi bi-hourglass-split me-2"></i> Distribusi Karyawan berdasarkan Band Posisi
+            (Difilter Durasi) per Unit</h3>
 
         {{-- Filter Checkbox Durasi Band --}}
         <div class="mb-3">
-            <label class="form-label fw-semibold">Pilih Durasi Band yang Ingin Ditampilkan:</label>
+            <label class="form-label fw-semibold">Filter Durasi Band:</label>
             <div id="durationFilterContainer" class="d-flex flex-wrap gap-3"></div>
         </div>
 
         {{-- FILTER BARU: Band Posisi --}}
         <div class="mb-4">
-            <label class="form-label fw-semibold">Pilih Band Posisi yang Ingin Ditampilkan (I, II, III, dst):</label>
+            <label class="form-label fw-semibold">Filter Band Posisi:</label>
             <div id="bandFilterContainer" class="d-flex flex-wrap gap-3">
             </div>
         </div>
@@ -170,45 +170,104 @@
                 });
 
             let bandDurationChart = null;
-            let allDurationDatasets = []; // Menyimpan semua dataset durasi dari data yang baru diambil
+            let allRawData = []; // NEW: stores the detailed data from the server (Unit, Band, Duration, Count)
+            let availableBands = []; // NEW: Bands available in the current fetched data
             const durationFilterContainer = document.getElementById('durationFilterContainer');
             const bandFilterContainer = document.getElementById('bandFilterContainer');
             const chartCtx = document.getElementById('bandDurationChart').getContext('2d');
 
+            // Variabel global untuk menyimpan Band Posisi yang aktif saat ini (dari checkbox Band Posisi)
+            let currentActiveBands = [];
+
             const colors = [
-                'rgba(0, 150, 136, 0.8)',
-                'rgba(255, 152, 0, 0.8)',
-                'rgba(192, 57, 43, 0.8)',
-                'rgba(300, 255, 20, 0.8)',
+                'rgba(0, 150, 136, 0.8)', // I
+                'rgba(255, 152, 0, 0.8)', // II
+                'rgba(192, 57, 43, 0.8)', // III
+                'rgba(300, 255, 20, 0.8)', // IV
+                'rgba(60, 180, 75, 0.8)', // V
+                'rgba(70, 240, 240, 0.8)', // VI
+                'rgba(245, 130, 48, 0.8)', // N/A
             ];
 
-            // Fungsi untuk membuat dan memperbarui chart
+            // Map untuk mendapatkan warna yang konsisten berdasarkan nama Band
+            const bandColorMap = {};
+            ['I', 'II', 'III', 'IV', 'V', 'VI'].forEach((band, index) => {
+                bandColorMap[`Band ${band}`] = colors[index % colors.length];
+            });
+
+            // Fungsi baru untuk mengagregasi raw data (pivot)
+            function aggregateData(rawData, units, activeDurations) {
+                const aggregatedData = {};
+                const bandsInChart = new Set();
+
+                // 1. Initialize aggregatedData structure
+                units.forEach(unit => {
+                    aggregatedData[unit] = {};
+                    availableBands.forEach(band => { // Initialize only for bands available in data
+                        aggregatedData[unit][band] = 0;
+                    });
+                });
+
+                // 2. Aggregate the raw data based on active duration filter
+                rawData.forEach(item => {
+                    const unit = item.UNIT;
+                    const band = item.band_posisi;
+                    const duration = item.calculated_duration_group;
+                    const count = item.count;
+
+                    // Apply Duration Filter: ONLY include counts where the duration group is active
+                    if (activeDurations.includes(duration)) {
+                        if (aggregatedData[unit] && aggregatedData[unit][band] !== undefined) {
+                            aggregatedData[unit][band] += count;
+                        }
+                        bandsInChart.add(band);
+                    }
+                });
+
+                // 3. Prepare datasets (Grouped by Band Posisi)
+                const sortedBands = Array.from(bandsInChart).sort();
+
+                const allBandDatasets = sortedBands.map((band) => {
+                    const label = `Band ${band}`;
+                    const color = bandColorMap[label] || colors[sortedBands.indexOf(band) % colors.length];
+
+                    return {
+                        label: label,
+                        data: units.map(unit => aggregatedData[unit][band] || 0),
+                        backgroundColor: color,
+                        borderColor: color.replace('0.8', '1'),
+                        borderWidth: 1
+                    };
+                });
+
+                return allBandDatasets;
+            }
+
+            // Fungsi untuk membuat dan memperbarui chart (Sekarang menggunakan Band Posisi sebagai dataset)
             function updateChart(data) {
-                const durationGroups = data.duration_groups;
                 const units = data.units;
-                const aggregatedData = data.data;
 
-                // 1. Buat semua datasets berdasarkan data yang baru diambil
-                allDurationDatasets = durationGroups.map((group, i) => ({
-                    label: group,
-                    data: units.map(unit => aggregatedData[unit][group]),
-                    backgroundColor: colors[i % colors.length],
-                    borderColor: colors[i % colors.length].replace('0.8', '1'),
-                    borderWidth: 1
-                }));
+                // 1. Save raw data and available bands from the server response
+                if (data.raw_data) {
+                    allRawData = data.raw_data;
+                    availableBands = data.bands;
+                }
 
-                // 2. Terapkan Filter Durasi Band (Client-Side)
+                // 2. Tentukan filter durasi yang aktif (Client-Side filtering)
                 const activeDurationGroups = Array.from(durationFilterContainer.querySelectorAll(
                     'input[type="checkbox"]:checked')).map(c => c.value);
-                const filteredDatasets = allDurationDatasets.filter(ds => activeDurationGroups.includes(ds.label));
+
+                // 3. Agregasi dan buat datasets baru (datasets adalah Band Posisi)
+                const filteredDatasets = aggregateData(allRawData, units, activeDurationGroups);
 
                 if (bandDurationChart) {
                     // Perbarui chart yang sudah ada
                     bandDurationChart.data.labels = units;
                     bandDurationChart.data.datasets = filteredDatasets;
+                    bandDurationChart.options.plugins.title.text = 'Distribusi Karyawan berdasarkan Band Posisi (Difilter Durasi) per Unit';
                     bandDurationChart.update();
                 } else {
-                    // Buat chart baru (Hanya terjadi saat inisialisasi awal)
+                    // Buat chart baru
                     bandDurationChart = new Chart(chartCtx, {
                         type: 'bar',
                         data: {
@@ -237,7 +296,7 @@
                             plugins: {
                                 title: {
                                     display: true,
-                                    text: 'Distribusi Durasi Band Posisi per Unit'
+                                    text: 'Distribusi Karyawan berdasarkan Band Posisi (Difilter Durasi) per Unit' // Updated Title
                                 },
                                 legend: {
                                     position: 'bottom'
@@ -264,18 +323,55 @@
                         }, true);
                         if (!points.length) return;
 
+                        // Cek apakah ada data di bar yang diklik
+                        if (bandDurationChart.data.datasets[points[0].datasetIndex].data[points[0].index] ===
+                            0) {
+                            return; // Jangan tampilkan modal jika data 0
+                        }
+
                         const point = points[0];
                         const unit = bandDurationChart.data.labels[point.index];
-                        const group = bandDurationChart.data.datasets[point.datasetIndex].label;
 
-                        fetch(
-                                `/employees/band-duration-detail/${encodeURIComponent(unit)}/${encodeURIComponent(group)}`
-                                )
-                            .then(res => res.json())
-                            .then(employees => {
+                        // Ambil Band Posisi yang diklik
+                        const bandLabel = bandDurationChart.data.datasets[point.datasetIndex].label;
+                        const clickedBand = bandLabel.replace('Band ', '').trim(); // 'I', 'II', etc.
+
+                        // Ambil Durasi Band yang sedang aktif (Client-Side filter)
+                        const activeDurationGroups = Array.from(durationFilterContainer.querySelectorAll(
+                            'input[type="checkbox"]:checked')).map(c => c.value);
+
+                        // Ambil Durasi Band yang sedang aktif (Client-Side filter)
+                        const durationQuery = activeDurationGroups.map(dur => `durations[]=${encodeURIComponent(dur)}`).join('&');
+
+                        // Logika Panggilan Detail:
+                        // Kita panggil endpoint detail *per* Durasi Band yang aktif, tetapi hanya untuk Band Posisi yang diklik.
+
+                        const detailPromises = activeDurationGroups.map(durationGroup => {
+                            // forcedBandQuery memastikan backend HANYA memfilter band yang diklik
+                            const forcedBandQuery = `bands[]=${encodeURIComponent(clickedBand)}`;
+
+                            const fetchUrl = `/employees/band-duration-detail/${encodeURIComponent(unit)}/${encodeURIComponent(durationGroup)}?${forcedBandQuery}`;
+
+                            return fetch(fetchUrl)
+                                .then(res => res.json())
+                                .then(employees => employees.map(emp => ({...emp, duration_group: durationGroup})))
+                                .catch(error => {
+                                    console.error(`Error fetching detail for ${durationGroup}:`, error);
+                                    return [];
+                                });
+                        });
+
+                        Promise.all(detailPromises)
+                            .then(results => {
+                                const employees = results.flat();
                                 const modalTitle = document.getElementById('employeeModalLabel');
                                 const modalBody = document.getElementById('employeeList');
-                                modalTitle.textContent = `Daftar Karyawan Durasi (${group}) - ${unit}`;
+
+                                const bandsUsed = clickedBand;
+                                const durationsUsed = activeDurationGroups.join(', ');
+
+                                modalTitle.textContent =
+                                    `Daftar Karyawan Band (${bandsUsed}) - ${unit} (Durasi: ${durationsUsed})`;
 
                                 modalBody.innerHTML = employees.length ?
                                     `<ul class="list-group">${employees.map(emp => `
@@ -285,13 +381,14 @@
                                             </div>
                                             <div class="ms-auto text-end">
                                                 <span class="badge bg-primary rounded-pill">${emp.lama_band_posisi} bulan</span>
-                                                <span class="badge bg-secondary rounded-pill">Band ${emp.band_posisi || 'N/A'}</span>
+                                                <span class="badge text-bg-info rounded-pill">Band ${emp.band_posisi || 'N/A'}</span>
                                             </div>
                                         </li>`).join('')}</ul>` :
-                                        '<p class="text-muted">Tidak ada data karyawan untuk kategori ini.</p>';
+                                    '<p class="text-muted">Tidak ada data karyawan untuk kategori ini.</p>';
 
                                 new bootstrap.Modal(document.getElementById('employeeModal')).show();
-                            });
+                            })
+                            .catch(error => console.error('Error combining employee details:', error));
                     };
                 }
             }
@@ -326,12 +423,16 @@
                 const activeBands = Array.from(bandFilterContainer.querySelectorAll(
                     'input[type="checkbox"]:checked')).map(c => c.value);
 
-                // Jika tidak ada band yang dipilih, kirim array kosong agar controller mengembalikan data kosong
+                // UPDATE: Simpan Band Posisi yang aktif ke variabel global
+                currentActiveBands = activeBands;
+
+                // Jika tidak ada band yang dipilih, kirim data kosong
                 if (activeBands.length === 0) {
                     updateChart({
                         units: [],
-                        duration_groups: allDurationDatasets.map(ds => ds.label),
-                        data: {}
+                        duration_groups: [],
+                        raw_data: [],
+                        bands: []
                     });
                     return;
                 }
@@ -343,9 +444,8 @@
                 fetch(fetchUrl)
                     .then(res => res.json())
                     .then(data => {
+                        // Data yang diterima kini adalah raw_data granular
                         updateChart(data);
-                        // Setelah fetch, pastikan filter durasi tetap terikat pada data yang baru
-                        setupDurationFilterListener();
                     })
                     .catch(error => console.error('Error fetching filtered data:', error));
             }
@@ -363,17 +463,17 @@
                 });
             }
 
-            // Handler perubahan filter Durasi Band
+            // Handler perubahan filter Durasi Band (Client-side filtering)
             function handleDurationChange() {
-                const active = Array.from(durationFilterContainer.querySelectorAll(
-                    'input[type="checkbox"]:checked')).map(c => c.value);
-
-                // Terapkan filter durasi ke datasets yang sudah ada (dari fetch terakhir)
-                const filteredDatasets = allDurationDatasets.filter(ds => active.includes(ds.label));
-
-                if (bandDurationChart) {
-                    bandDurationChart.data.datasets = filteredDatasets;
-                    bandDurationChart.update();
+                // Panggil updateChart untuk memicu re-aggregation dan re-render
+                const chartDataForUpdate = {
+                    units: bandDurationChart ? bandDurationChart.data.labels : [],
+                    duration_groups: Array.from(durationFilterContainer.querySelectorAll('input[type="checkbox"]')).map(c => c.value),
+                    bands: availableBands,
+                    raw_data: allRawData
+                };
+                if (chartDataForUpdate.units.length > 0) {
+                    updateChart(chartDataForUpdate);
                 }
             }
 
@@ -388,9 +488,12 @@
                     setupDurationFilterListener(); // Pasang listener untuk filter durasi
 
                     // 2. Setup Filter Band Posisi (Server-Side)
-                    // Ambil daftar semua band yang valid dari respons controller
                     const allBands = data.all_bands || ['I', 'II', 'III', 'IV', 'V', 'VI'];
                     generateCheckboxes(bandFilterContainer, allBands, 'band');
+
+                    // Inisialisasi variabel global
+                    currentActiveBands = allBands;
+                    availableBands = data.bands;
 
                     // Pasang listener untuk filter band (akan memicu re-fetch data)
                     bandFilterContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
