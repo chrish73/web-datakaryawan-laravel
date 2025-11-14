@@ -10,6 +10,7 @@ class Training extends Model
     use HasFactory;
 
     protected $fillable = [
+        'id_event',
         'employee_id',
         'nama_pelatihan',
         'tanggal_mulai',

@@ -89,12 +89,13 @@
 
         {{-- BAGIAN BARU: IMPORT DAN SEARCH DIGABUNG --}}
         <div class="row mb-5">
-            {{-- BAGIAN 1: FORM IMPORT EXCEL --}}
+            {{-- BAGIAN 1: FORM IMPORT & EXPORT EXCEL --}}
             <div class="col-lg-6 mb-4 mb-lg-0">
-                <h5 class="fw-bold text-muted mb-3"><i class="bi bi-database-up me-2"></i>Opsi Import Data</h5>
+                <h5 class="fw-bold text-muted mb-3"><i class="bi bi-database-up me-2"></i>Opsi Import & Export Data</h5>
                 <div class="card shadow-sm p-3 rounded-3 border border-light-subtle">
+                    {{-- Form Import Data Pelatihan --}}
                     <p class="small text-muted mb-2">Import Data Pelatihan Massal (Excel)</p>
-                    <form action="{{ route('trainings.import_excel') }}" method="POST" enctype="multipart/form-data" class="d-flex">
+                    <form action="{{ route('trainings.import_excel') }}" method="POST" enctype="multipart/form-data" class="d-flex mb-3 pb-3 border-bottom">
                         @csrf
                         <input type="file" name="file" class="form-control form-control-sm me-2" required>
                         <button class="btn btn-success btn-sm text-nowrap" type="submit">
@@ -104,6 +105,13 @@
                     @error('file')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                     @enderror
+
+                    {{-- Export Data Pelatihan --}}
+                    <p class="small text-muted mb-2 pt-2">Export Data Pelatihan (Excel)</p>
+                    {{-- Tautan untuk export yang memanggil route baru --}}
+                    <a href="{{ route('trainings.export') }}" class="btn btn-info btn-sm text-white text-nowrap align-self-start">
+                        <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i> Export Semua Data
+                    </a>
                 </div>
             </div>
 
@@ -152,6 +160,13 @@
         <div class="alert alert-info border-0 shadow-sm rounded-3">
             <i class="bi bi-info-circle-fill me-2"></i> Klik "Tambah Pelatihan Baru" untuk memasukkan data. Untuk mengedit atau menghapus riwayat, gunakan tombol aksi di sebelah nama pelatihan.
         </div>
+
+        {{-- DAFTAR PELATIHAN UNTUK DATALIST (Memastikan tersedia secara global di halaman) --}}
+        <datalist id="datalistOptions">
+            @foreach ($uniqueTrainings as $trainingName)
+                <option value="{{ $trainingName }}">
+            @endforeach
+        </datalist>
 
         {{-- BAGIAN 2: DAFTAR KARYAWAN DAN INPUT MANUAL --}}
         <div class="row">
@@ -225,7 +240,20 @@
                                         <div class="card card-body mb-2 p-2 training-item">
                                             <div class="row g-2">
                                                 <div class="col-12 mb-2">
-                                                    <input type="text" name="trainings[0][nama_pelatihan]" class="form-control form-control-sm" placeholder="Nama Pelatihan" required>
+                                                    {{-- Diubah menjadi input text dengan datalist (combo box) --}}
+                                                    <input type="text" name="trainings[0][nama_pelatihan]"
+                                                           class="form-control form-control-sm nama-pelatihan-input"
+                                                           placeholder="Pilih atau Ketik Nama Pelatihan Baru"
+                                                           list="datalistOptions"
+                                                           required>
+                                                </div>
+                                                {{-- BARU: Input ID Event --}}
+                                                <div class="col-12 mb-2">
+                                                    <label class="form-label small mb-0">ID Event (Otomatis terisi jika ada)</label>
+                                                    <input type="text" name="trainings[0][id_event]"
+                                                           class="form-control form-control-sm id-event-input"
+                                                           placeholder="ID Event (mis: T001)"
+                                                           maxlength="255">
                                                 </div>
                                                 <div class="col-md-5">
                                                     <label class="form-label small mb-0">Tgl Mulai</label>
@@ -383,6 +411,9 @@
                 });
         });
 
+        // BARU: Injeksi data mapping dari Controller ke JavaScript
+        const trainingEventMap = @json($trainingEventMap ?? []);
+
         // Logika Tambah & Hapus Pelatihan Input (Dari training.blade.php)
         let trainingIndex = 1;
 
@@ -393,7 +424,20 @@
                 <div class="card card-body mb-2 p-2 training-item">
                     <div class="row g-2">
                         <div class="col-12 mb-2">
-                            <input type="text" name="trainings[${newIndex}][nama_pelatihan]" class="form-control form-control-sm" placeholder="Nama Pelatihan" required>
+                            {{-- Menggunakan input text dan datalist agar bisa input atau pilih --}}
+                            <input type="text" name="trainings[${newIndex}][nama_pelatihan]"
+                                   class="form-control form-control-sm nama-pelatihan-input"
+                                   placeholder="Pilih atau Ketik Nama Pelatihan Baru"
+                                   list="datalistOptions"
+                                   required>
+                        </div>
+                        {{-- BARU: Input ID Event --}}
+                        <div class="col-12 mb-2">
+                            <label class="form-label small mb-0">ID Event (Otomatis terisi jika ada)</label>
+                            <input type="text" name="trainings[${newIndex}][id_event]"
+                                   class="form-control form-control-sm id-event-input"
+                                   placeholder="ID Event (mis: T001)"
+                                   maxlength="255">
                         </div>
                         <div class="col-md-5">
                             <label class="form-label small mb-0">Tgl Mulai</label>
@@ -426,6 +470,26 @@
             $(`input[name="trainings[${newIndex}][nama_pelatihan]"]`).focus();
         }
 
+        // BARU: Event listener untuk lookup ID Event
+        $(document).on('input', '.nama-pelatihan-input', function() {
+            const inputNamaPelatihan = $(this);
+            const namaPelatihan = inputNamaPelatihan.val();
+
+            // Cari id_event input yang sesuai dalam 'training-item' yang sama
+            const trainingItem = inputNamaPelatihan.closest('.training-item');
+            const idEventInput = trainingItem.find('.id-event-input');
+
+            if (trainingEventMap[namaPelatihan]) {
+                // KASUS 1: Pelatihan Ditemukan (Otomatis)
+                idEventInput.val(trainingEventMap[namaPelatihan]);
+                idEventInput.prop('readonly', true); // Jadikan read-only
+            } else {
+                // KASUS 2: Pelatihan TIDAK DITEMUKAN (Input Manual Event Baru)
+                idEventInput.val('');
+                idEventInput.prop('readonly', false); // Hapus read-only (bisa diinput manual)
+            }
+        });
+
         // Event listener untuk tombol hapus (untuk input yang dinamis)
         $(document).on('click', '.remove-pelatihan', function() {
             const container = $(this).closest('[id^="pelatihan-container-"]');
@@ -447,8 +511,13 @@
 
         // Event listener untuk fokus otomatis saat form dibuka
         $(document).on('shown.bs.collapse', '.collapse', function() {
-            // Cari input text pertama di dalam collapse yang baru terbuka
-            $(this).find('input[type="text"]:first').focus();
+            // Cari input text nama pelatihan pertama di dalam collapse yang baru terbuka
+            $(this).find('input.nama-pelatihan-input:first').focus();
+        });
+
+        // Trigger lookup pada input awal saat dokumen siap (misalnya, jika data form diisi dari cache/reload)
+        $(document).ready(function() {
+            $('.nama-pelatihan-input').trigger('input');
         });
 
         // Logika untuk mengisi Modal Edit

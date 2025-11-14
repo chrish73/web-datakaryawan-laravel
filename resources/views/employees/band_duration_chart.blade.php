@@ -378,6 +378,7 @@
                                         <li class="list-group-item d-flex justify-content-between align-items-center">
                                             <div>
                                                 <strong>${emp.nama}</strong><br>
+                                                <span>NIK: ${emp.nik}</span>
                                             </div>
                                             <div class="ms-auto text-end">
                                                 <span class="badge bg-primary rounded-pill">${emp.lama_band_posisi} bulan</span>

@@ -31,6 +31,29 @@ class TrainingsImport implements WithMultipleSheets, SkipsUnknownSheets
 // KELAS LOGIKA IMPORT DENGAN LOGIKA PENCEGAHAN DUPLIKAT
 class TrainingSheetImport implements ToModel, WithHeadingRow, WithValidation
 {
+    // BARU: Method untuk memastikan tipe data id_event sudah benar sebelum validasi
+    public function prepareForValidation($data, $index)
+    {
+        // 1. Cek apakah kolom id_event ada di data yang diimpor
+        if (isset($data['id_event'])) {
+            $value = $data['id_event'];
+
+            // 2. Konversi nilai apa pun menjadi string, lalu trim
+            $sanitizedValue = trim((string) $value);
+
+            // 3. Jika hasilnya adalah string kosong, ubah menjadi null
+            if ($sanitizedValue === '') {
+                 $data['id_event'] = null; // Ini akan lolos validasi 'nullable'
+            } else {
+                 $data['id_event'] = $sanitizedValue; // Tetap string
+            }
+        }
+        // Jika kolom id_event tidak ada, 'nullable' akan menanganinya
+
+        return $data;
+    }
+
+
     public function model(array $row)
     {
         // 1. SANITASI NIK dan cari Karyawan
@@ -52,8 +75,8 @@ class TrainingSheetImport implements ToModel, WithHeadingRow, WithValidation
         // ** LOGIKA PENCEGAHAN DUPLIKAT BARU **
         // Cek apakah karyawan sudah memiliki pelatihan dengan nama yang sama
         $existingTraining = Training::where('employee_id', $employee->id)
-                                    ->where('nama_pelatihan', $namaEvent)
-                                    ->first();
+                                     ->where('nama_pelatihan', $namaEvent)
+                                      ->first();
 
         if ($existingTraining) {
             // Jika pelatihan sudah ada, SKIPPING baris ini (tidak membuat duplikat)
@@ -66,7 +89,9 @@ class TrainingSheetImport implements ToModel, WithHeadingRow, WithValidation
         $statusPelatihan = ucwords(strtolower($row['delivery'] ?? null));
 
         // 3. BUAT MODEL TRAINING BARU
+        // Nilai $row['id_event'] di sini sudah dijamin string atau null karena prepareForValidation
         return new Training([
+            'id_event'          => $row['id_event'] ?? null,
             'employee_id'       => $employee->id,
             'nama_pelatihan'    => $namaEvent,
             'tanggal_mulai'     => $tanggalMulai,
@@ -126,8 +151,9 @@ class TrainingSheetImport implements ToModel, WithHeadingRow, WithValidation
 
     public function rules(): array
     {
-        // Tetap menggunakan 'required'
+        // Aturan validasi yang tetap
         return [
+            'id_event' => 'nullable|string|max:255',
             'nik' => 'required',
             'nama_event' => 'required|string|max:255',
             'tanggal_mulai' => 'nullable',

@@ -14,6 +14,7 @@ use App\Imports\TrainingsImport;
 use App\Models\Training;
 use Carbon\Carbon;
 use App\Models\Training as TrainingModel;
+use App\Exports\TrainingExport;
 
 class EmployeeController extends Controller
 {
@@ -372,7 +373,7 @@ class EmployeeController extends Controller
             $query->whereIn('band_posisi', $selectedBands);
         }
 
-        $employees = $query->select('nama', 'lama_band_posisi', 'band_posisi')
+        $employees = $query->select('nama', 'lama_band_posisi', 'band_posisi', 'nik')
             ->orderBy('nama')
             ->get();
 
@@ -458,7 +459,7 @@ class EmployeeController extends Controller
 
 public function showTrainingInput(Request $request)
     {
-        $search = $request->get('search'); // Ambil query pencarian
+        $search = $request->get('search');
 
         // 1. Ambil data Karyawan dengan Search dan Pagination
         $employees = Employee::when($search, function ($query, $search) {
@@ -466,7 +467,7 @@ public function showTrainingInput(Request $request)
                 $q->where('nama', 'like', "%{$search}%")
                   ->orWhere('nik', 'like', "%{$search}%");
             });
-        })->with('trainings')->orderBy('nama')->simplePaginate(10); // Menggunakan simplePaginate(10)
+        })->with('trainings')->orderBy('nama')->simplePaginate(10);
 
         // 2. Ambil semua nama pelatihan unik yang sudah ada
         $uniqueTrainings = Training::select('nama_pelatihan')
@@ -474,8 +475,19 @@ public function showTrainingInput(Request $request)
                                  ->orderBy('nama_pelatihan')
                                  ->pluck('nama_pelatihan');
 
-        // 3. Melewatkan semua variabel ke view
-        return view('employees.training', compact('employees', 'uniqueTrainings', 'search'));
+        // BARU: Ambil mapping nama_pelatihan ke id_event (ambil event ID dari record terbaru/terakhir)
+        $trainingEventMap = Training::select('nama_pelatihan', 'id_event')
+            ->whereNotNull('id_event')
+            ->orderBy('tanggal_mulai', 'desc') // Urutkan untuk mendapatkan yang terbaru
+            ->get()
+            ->groupBy('nama_pelatihan')
+            ->mapWithKeys(function ($item) {
+                // Ambil id_event dari record pertama dalam grup (yang paling baru/sesuai urutan)
+                return [$item->first()->nama_pelatihan => $item->first()->id_event];
+            })->toArray();
+
+        // 3. Melewatkan semua variabel ke view, termasuk mapping baru
+        return view('employees.training', compact('employees', 'uniqueTrainings', 'search', 'trainingEventMap'));
     }
 
     public function storeTraining(Request $request)
@@ -487,6 +499,7 @@ public function showTrainingInput(Request $request)
             'trainings.*.tanggal_mulai'      => 'nullable|date',
             'trainings.*.tanggal_selesai'    => 'nullable|date|after_or_equal:trainings.*.tanggal_mulai',
             'trainings.*.status_pelatihan'   => 'nullable|in:Online,Offline',
+            'trainings.*.id_event'           => 'nullable|string|max:255', // <--- TAMBAH VALIDASI id_event
         ]);
 
         $employee = Employee::findOrFail($request->employee_id);
@@ -495,11 +508,12 @@ public function showTrainingInput(Request $request)
             $trainingsToSave = [];
             foreach ($request->trainings as $training) {
                 if (!empty($training['nama_pelatihan'])) {
-                    $trainingsToSave[] = new TrainingModel([ // <-- DIUBAH DI SINI
+                    $trainingsToSave[] = new TrainingModel([
                         'nama_pelatihan'   => $training['nama_pelatihan'],
                         'tanggal_mulai'    => $training['tanggal_mulai'] ?? null,
                         'tanggal_selesai'  => $training['tanggal_selesai'] ?? null,
                         'status_pelatihan' => $training['status_pelatihan'] ?? null,
+                        'id_event'         => $training['id_event'] ?? null, // <--- SIMPAN id_event
                     ]);
                 }
             }
@@ -519,13 +533,15 @@ public function showTrainingInput(Request $request)
             'tanggal_mulai' => 'nullable|date',
             'tanggal_selesai' => 'nullable|date|after_or_equal:tanggal_mulai',
             'status_pelatihan' => 'nullable|in:Online,Offline',
+            'id_event' => 'nullable|string|max:255',
         ]);
 
         $training->update($request->only([
             'nama_pelatihan',
             'tanggal_mulai',
             'tanggal_selesai',
-            'status_pelatihan'
+            'status_pelatihan',
+            'id_event',
         ]));
 
         return redirect()->route('employees.training_input')->with('success', "Data pelatihan '{$training->nama_pelatihan}' berhasil diperbarui!");
@@ -553,7 +569,7 @@ public function showTrainingInput(Request $request)
 
         try {
             // Panggil kelas import baru
-            \Maatwebsite\Excel\Facades\Excel::import(new TrainingsImport, $request->file('file'));
+            \Maatwebsite\Excel\Facades\Excel::import(new TrainingsImport(), $request->file('file'));
 
             return redirect()->route('employees.training_input')->with('success', 'Berhasil mengimpor data pelatihan dari Excel!');
 
@@ -570,6 +586,13 @@ public function showTrainingInput(Request $request)
         } catch (\Exception $e) {
             return redirect()->route('employees.training_input')->with('error', 'Gagal impor: ' . $e->getMessage());
         }
+    }
+
+    public function exportTraining()
+    {
+        // Menggunakan kelas TrainingExport untuk mengambil data dan mengunduhnya sebagai file .xlsx
+        $fileName = 'data_pelatihan_'.Carbon::now()->format('Ymd_His').'.xlsx';
+        return Excel::download(new TrainingExport(), $fileName);
     }
 
 }

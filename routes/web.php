@@ -50,3 +50,4 @@ Route::get('/employees/training', [EmployeeController::class, 'showTrainingInput
 Route::post('/employees/training', [EmployeeController::class, 'storeTraining'])->name('employees.store_training');
 Route::put('/trainings/{training}', [EmployeeController::class, 'updateTraining'])->name('trainings.update');
 Route::delete('/trainings/{training}', [EmployeeController::class, 'deleteTraining'])->name('trainings.delete');
+Route::get('/employees/training/export', [EmployeeController::class, 'exportTraining'])->name('trainings.export');
