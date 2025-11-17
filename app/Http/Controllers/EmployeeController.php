@@ -595,4 +595,138 @@ public function showTrainingInput(Request $request)
         return Excel::download(new TrainingExport(), $fileName);
     }
 
+    public function getTrainingSummaryByEvent(Request $request)
+    {
+        $request->validate([
+            'event_name' => 'required|string|max:255',
+        ]);
+
+        $eventName = $request->input('event_name');
+
+        // 1. Ambil semua data pelatihan untuk event yang spesifik, dengan eager loading data employee
+        $trainings = TrainingModel::where('nama_pelatihan', $eventName)
+            ->with(['employee:id,nik,nama']) // Eager load data Employee (hanya kolom yang diperlukan)
+            ->get(); //
+
+        // 2. Inisialisasi array untuk menampung hasil yang dipisah
+        $summary = [
+            'online' => [],
+            'offline' => [],
+        ];
+
+        // 3. Iterasi dan pisahkan data berdasarkan status_pelatihan
+        foreach ($trainings as $training) {
+            // Pastikan data karyawan ada (employee_id valid)
+            if ($training->employee) {
+                $participantData = [
+                    'nik' => $training->employee->nik,
+                    'nama' => $training->employee->nama,
+                    'mulai' => $training->tanggal_mulai,
+                    'selesai' => $training->tanggal_selesai,
+                ];
+
+                // Normalisasi status menjadi 'online' atau 'offline'
+                $status = strtolower($training->status_pelatihan) === 'online' ? 'online' : (strtolower($training->status_pelatihan) === 'offline' ? 'offline' : null);
+
+                if ($status) {
+                    $summary[$status][] = $participantData;
+                }
+            }
+        }
+
+        // 4. Urutkan hasilnya berdasarkan nama karyawan (opsional, untuk tampilan lebih rapi)
+        usort($summary['online'], fn ($a, $b) => strcmp($a['nama'], $b['nama']));
+        usort($summary['offline'], fn ($a, $b) => strcmp($a['nama'], $b['nama']));
+
+        return response()->json($summary); // Mengembalikan data dalam format JSON
+    }
+
+    public function showBandPositionMonthlyChart()
+    {
+        // Ambil semua tahun unik dari tgl_band_posisi yang ada
+        $availableYears = \App\Models\Employee::whereNotNull('tgl_band_posisi')
+                                  ->select(\Illuminate\Support\Facades\DB::raw('YEAR(tgl_band_posisi) as year'))
+                                  ->distinct()
+                                  ->orderBy('year', 'desc')
+                                  ->pluck('year')
+                                  ->toArray();
+
+        // Tentukan tahun yang dipilih (default: tahun terbaru atau tahun saat ini)
+        $selectedYear = end($availableYears) ?: \Carbon\Carbon::now()->year;
+
+        // Jika tidak ada data sama sekali, pastikan array tidak kosong untuk dropdown
+        if (empty($availableYears)) {
+            $availableYears[] = \Carbon\Carbon::now()->year;
+            $selectedYear = \Carbon\Carbon::now()->year;
+        }
+
+
+        return view('employees.band_position_monthly_chart', compact('availableYears', 'selectedYear'));
+    }
+
+    /**
+     * Mengambil data chart band posisi bulanan.
+     */
+    public function bandPositionMonthlyChartData(Request $request)
+    {
+        $year = $request->input('year', \Carbon\Carbon::now()->year);
+        $allBands = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+
+        // 1. Ambil data, hitung per bulan dan per band posisi
+        $data = \App\Models\Employee::select(
+                \Illuminate\Support\Facades\DB::raw('MONTH(tgl_band_posisi) as month'),
+                'band_posisi',
+                \Illuminate\Support\Facades\DB::raw('count(*) as count')
+            )
+            ->whereYear('tgl_band_posisi', $year)
+            ->whereNotNull('band_posisi')
+            // ->where('status_eligibility', 'Eligible')
+            ->whereIn('band_posisi', $allBands) // Hanya band yang valid
+            ->groupBy(\Illuminate\Support\Facades\DB::raw('MONTH(tgl_band_posisi)'), 'band_posisi')
+            ->orderBy(\Illuminate\Support\Facades\DB::raw('MONTH(tgl_band_posisi)'))
+            ->get();
+
+        // 2. Format data untuk Chart.js (Pivot)
+        $monthlyData = [];
+
+        foreach ($data as $item) {
+            $month = $item->month;
+            $band = $item->band_posisi;
+
+            if (!isset($monthlyData[$month])) {
+                $monthlyData[$month] = [];
+            }
+            $monthlyData[$month][$band] = $item->count;
+        }
+
+        // 3. Ambil semua band yang muncul di data tahun ini, dan pastikan urutannya benar
+        $bandsInResult = $data->pluck('band_posisi')->unique()->values()->toArray();
+        \usort($bandsInResult, fn($a, $b) => array_search($a, $allBands) <=> array_search($b, $allBands));
+
+
+        return response()->json([
+            'year' => (int)$year,
+            'bands' => $bandsInResult,
+            'monthly_data' => $monthlyData,
+        ]);
+    }
+
+    /**
+     * Mengambil detail karyawan untuk drill-down chart bulanan.
+     */
+    public function getBandPositionMonthlyDetails($year, $month, Request $request)
+    {
+        $band = $request->input('band');
+
+        $employees = \App\Models\Employee::whereYear('tgl_band_posisi', $year)
+            ->whereMonth('tgl_band_posisi', $month)
+            ->where('band_posisi', $band)
+            // ->where('status_eligibility', 'Eligible')
+            ->select('nik', 'nama', 'band_posisi', 'tgl_band_posisi')
+            ->orderBy('nama')
+            ->get();
+
+        return response()->json($employees);
+    }
+
 }

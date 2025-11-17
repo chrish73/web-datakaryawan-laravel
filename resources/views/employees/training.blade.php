@@ -12,6 +12,19 @@
 
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     {{-- Catatan: Pastikan file style.css yang diunggah tersedia di path yang benar --}}
+
+    {{-- BARU: Custom CSS untuk Loader/Spin (jika diperlukan oleh style.css Anda) --}}
+    <style>
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -33,11 +46,13 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {{ Request::routeIs('employees.chart') ? 'active' : '' }}"
-                            href="{{ route('employees.chart') }}"><i class="bi bi-bar-chart-line-fill me-1"></i> Data Band Posisi</a>
+                            href="{{ route('employees.chart') }}"><i class="bi bi-bar-chart-line-fill me-1"></i> Data
+                            Band Posisi</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {{ Request::routeIs('employees.age_group_chart') ? 'active' : '' }}"
-                            href="{{ route('employees.age_group_chart' ) }}"><i class="bi bi-graph-up me-1"></i> Data Kelompok Usia</a>
+                            href="{{ route('employees.age_group_chart') }}"><i class="bi bi-graph-up me-1"></i> Data
+                            Kelompok Usia</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {{ Request::is('employees/band') ? 'active' : '' }}"
@@ -53,7 +68,8 @@
                     {{-- END: LINK EVENTS --}}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('employees.today_birthdays') }}">
-                            <i class="bi bi-gift-fill me-1"></i> Ulang Tahun Hari Ini <span id="birthday-badge" class="badge text-bg-warning rounded-pill ms-1" style="display: none;"></span>
+                            <i class="bi bi-gift-fill me-1"></i> Ulang Tahun Hari Ini <span id="birthday-badge"
+                                class="badge text-bg-warning rounded-pill ms-1" style="display: none;"></span>
                         </a>
                     </li>
                 </ul>
@@ -62,7 +78,8 @@
                 <div class="d-flex align-items-center ms-lg-3">
                     <i class="bi bi-sun-fill me-2 text-warning" id="light-icon"></i>
                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="darkModeToggle" role="switch" aria-label="Toggle Dark Mode">
+                        <input class="form-check-input" type="checkbox" id="darkModeToggle" role="switch"
+                            aria-label="Toggle Dark Mode">
                     </div>
                     <i class="bi bi-moon-stars-fill ms-2 text-primary" id="dark-icon"></i>
                 </div>
@@ -74,7 +91,8 @@
     <div class="container main-content">
         {{-- START: BIRTHDAY NOTIFICATION AREA (Diambil dari index.blade.php) --}}
         <div id="birthday-notification-area" class="mt-3 mb-4" style="display: none;">
-            <div class="alert alert-warning d-flex justify-content-between align-items-center border-0 shadow-sm" role="alert">
+            <div class="alert alert-warning d-flex justify-content-between align-items-center border-0 shadow-sm"
+                role="alert">
                 <div class="d-flex align-items-center">
                     <i class="bi bi-gift-fill me-2 fs-4"></i>
                     <span id="birthday-message" class="fw-bold"></span>
@@ -95,7 +113,8 @@
                 <div class="card shadow-sm p-3 rounded-3 border border-light-subtle">
                     {{-- Form Import Data Pelatihan --}}
                     <p class="small text-muted mb-2">Import Data Pelatihan Massal (Excel)</p>
-                    <form action="{{ route('trainings.import_excel') }}" method="POST" enctype="multipart/form-data" class="d-flex mb-3 pb-3 border-bottom">
+                    <form action="{{ route('trainings.import_excel') }}" method="POST" enctype="multipart/form-data"
+                        class="d-flex mb-3 pb-3 border-bottom">
                         @csrf
                         <input type="file" name="file" class="form-control form-control-sm me-2" required>
                         <button class="btn btn-success btn-sm text-nowrap" type="submit">
@@ -109,7 +128,8 @@
                     {{-- Export Data Pelatihan --}}
                     <p class="small text-muted mb-2 pt-2">Export Data Pelatihan (Excel)</p>
                     {{-- Tautan untuk export yang memanggil route baru --}}
-                    <a href="{{ route('trainings.export') }}" class="btn btn-info btn-sm text-white text-nowrap align-self-start">
+                    <a href="{{ route('trainings.export') }}"
+                        class="btn btn-info btn-sm text-white text-nowrap align-self-start">
                         <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i> Export Semua Data
                     </a>
                 </div>
@@ -118,15 +138,25 @@
             {{-- BAGIAN BARU: PENCARIAN DATA --}}
             <div class="col-lg-6">
                 <h5 class="fw-bold text-muted mb-3"><i class="bi bi-search me-2"></i>Pencarian Data Karyawan</h5>
-                <form method="GET" action="{{ route('employees.training_input') }}" class="d-flex search-form shadow-sm p-3 rounded-3 border border-light-subtle">
+                <form method="GET" action="{{ route('employees.training_input') }}"
+                    class="d-flex search-form shadow-sm p-3 rounded-3 border border-light-subtle">
                     <div class="input-group">
                         <input type="text" name="search" class="form-control" placeholder="Cari Nama / NIK..."
                             value="{{ $search }}">
                         <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
                         {{-- Link Reset Filter --}}
-                        <a href="{{ route('employees.training_input') }}" class="btn btn-outline-danger"><i class="bi bi-x-circle"></i></a>
+                        <a href="{{ route('employees.training_input') }}" class="btn btn-outline-danger"><i
+                                class="bi bi-x-circle"></i></a>
                     </div>
                 </form>
+                {{-- BARU: TOMBOL UNTUK KE REKAP EVENT --}}
+                <div class="mb-4">
+                    <button class="btn btn-primary shadow-sm" type="button" data-bs-toggle="modal"
+                        data-bs-target="#eventSummaryModal">
+                        <i class="bi bi-bar-chart-fill me-2"></i> Lihat Rekap Partisipasi per Event
+                    </button>
+                </div>
+                {{-- END BARU: TOMBOL UNTUK KE REKAP EVENT --}}
             </div>
         </div>
 
@@ -158,7 +188,8 @@
         @endif
 
         <div class="alert alert-info border-0 shadow-sm rounded-3">
-            <i class="bi bi-info-circle-fill me-2"></i> Klik "Tambah Pelatihan Baru" untuk memasukkan data. Untuk mengedit atau menghapus riwayat, gunakan tombol aksi di sebelah nama pelatihan.
+            <i class="bi bi-info-circle-fill me-2"></i> Klik "Tambah Pelatihan Baru" untuk memasukkan data. Untuk
+            mengedit atau menghapus riwayat, gunakan tombol aksi di sebelah nama pelatihan.
         </div>
 
         {{-- DAFTAR PELATIHAN UNTUK DATALIST (Memastikan tersedia secara global di halaman) --}}
@@ -181,53 +212,63 @@
 
                             <hr>
 
-                        <h6>Riwayat Pelatihan ({{ $employee->trainings->count() }})</h6>
-                        @if ($employee->trainings->isEmpty())
-                            <p class="text-secondary small">Belum ada data pelatihan yang tercatat.</p>
-                        @else
-                            <ul class="list-group list-group-flush mb-3 small">
-                                @foreach ($employee->trainings->sortByDesc('tanggal_mulai') as $training)
-                                    <li class="list-group-item p-2 d-flex justify-content-between align-items-center"> {{-- Ganti align-items-start menjadi align-items-center agar tombol sejajar --}}
-                                        <div>
-                                            <strong>{{ $training->nama_pelatihan }}</strong>
-                                            <span class="badge bg-{{ $training->status_pelatihan == 'Online' ? 'primary' : 'success' }}">{{ $training->status_pelatihan ?? 'N/A' }}</span>
-                                            <br>
-                                            <small class="text-muted d-block">
-                                                Mulai: {{ $training->tanggal_mulai ? \Carbon\Carbon::parse($training->tanggal_mulai)->format('d/m/Y') : '-' }}
-                                                | Selesai: {{ $training->tanggal_selesai ? \Carbon\Carbon::parse($training->tanggal_selesai)->format('d/m/Y') : '-' }}
-                                            </small>
-                                        </div>
+                            <h6>Riwayat Pelatihan ({{ $employee->trainings->count() }})</h6>
+                            @if ($employee->trainings->isEmpty())
+                                <p class="text-secondary small">Belum ada data pelatihan yang tercatat.</p>
+                            @else
+                                <ul class="list-group list-group-flush mb-3 small">
+                                    @foreach ($employee->trainings->sortByDesc('tanggal_mulai') as $training)
+                                        <li
+                                            class="list-group-item p-2 d-flex justify-content-between align-items-center">
+                                            {{-- Ganti align-items-start menjadi align-items-center agar tombol sejajar --}}
+                                            <div>
+                                                <strong>{{ $training->nama_pelatihan }}</strong>
+                                                <span
+                                                    class="badge bg-{{ $training->status_pelatihan == 'Online' ? 'primary' : 'success' }}">{{ $training->status_pelatihan ?? 'N/A' }}</span>
+                                                <br>
+                                                <small class="text-muted d-block">
+                                                    Mulai:
+                                                    {{ $training->tanggal_mulai ? \Carbon\Carbon::parse($training->tanggal_mulai)->format('d/m/Y') : '-' }}
+                                                    | Selesai:
+                                                    {{ $training->tanggal_selesai ? \Carbon\Carbon::parse($training->tanggal_selesai)->format('d/m/Y') : '-' }}
+                                                </small>
+                                            </div>
 
-                                        {{-- ACTIONS BUTTONS YANG DIPERBAIKI --}}
-                                        <div class="btn-group btn-group-sm ms-2" role="group" aria-label="Aksi Pelatihan">
-                                            {{-- Edit Button (Ditambahkan me-1 untuk memberi jarak di kanan) --}}
-                                            <button type="button" class="btn btn-warning btn-sm me-1"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#editTrainingModal"
+                                            {{-- ACTIONS BUTTONS YANG DIPERBAIKI --}}
+                                            <div class="btn-group btn-group-sm ms-2" role="group"
+                                                aria-label="Aksi Pelatihan">
+                                                {{-- Edit Button (Ditambahkan me-1 untuk memberi jarak di kanan) --}}
+                                                <button type="button" class="btn btn-warning btn-sm me-1"
+                                                    data-bs-toggle="modal" data-bs-target="#editTrainingModal"
                                                     data-id="{{ $training->id }}"
                                                     data-nama="{{ $training->nama_pelatihan }}"
                                                     data-mulai="{{ $training->tanggal_mulai }}"
                                                     data-selesai="{{ $training->tanggal_selesai }}"
                                                     data-status="{{ $training->status_pelatihan }}"
                                                     title="Edit Pelatihan">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </button>
-
-                                            {{-- Delete Button --}}
-                                            <form action="{{ route('trainings.delete', $training->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pelatihan {{ $training->nama_pelatihan }}?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-danger btn-sm" title="Hapus Pelatihan">
-                                                    <i class="bi bi-trash-fill"></i>
+                                                    <i class="bi bi-pencil-square"></i>
                                                 </button>
-                                            </form>
-                                        </div>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        @endif
 
-                            <button class="btn btn-sm btn-info text-white" type="button" data-bs-toggle="collapse" data-bs-target="#formPelatihan-{{ $employee->id }}" aria-expanded="false" aria-controls="formPelatihan-{{ $employee->id }}">
+                                                {{-- Delete Button --}}
+                                                <form action="{{ route('trainings.delete', $training->id) }}"
+                                                    method="POST"
+                                                    onsubmit="return confirm('Apakah Anda yakin ingin menghapus pelatihan {{ $training->nama_pelatihan }}?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-danger btn-sm"
+                                                        title="Hapus Pelatihan">
+                                                        <i class="bi bi-trash-fill"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @endif
+
+                            <button class="btn btn-sm btn-info text-white" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#formPelatihan-{{ $employee->id }}" aria-expanded="false"
+                                aria-controls="formPelatihan-{{ $employee->id }}">
                                 Tambah Pelatihan Baru
                             </button>
 
@@ -242,46 +283,51 @@
                                                 <div class="col-12 mb-2">
                                                     {{-- Diubah menjadi input text dengan datalist (combo box) --}}
                                                     <input type="text" name="trainings[0][nama_pelatihan]"
-                                                           class="form-control form-control-sm nama-pelatihan-input"
-                                                           placeholder="Pilih atau Ketik Nama Pelatihan Baru"
-                                                           list="datalistOptions"
-                                                           required>
+                                                        class="form-control form-control-sm nama-pelatihan-input"
+                                                        placeholder="Pilih atau Ketik Nama Pelatihan Baru"
+                                                        list="datalistOptions" required>
                                                 </div>
                                                 {{-- BARU: Input ID Event --}}
                                                 <div class="col-12 mb-2">
-                                                    <label class="form-label small mb-0">ID Event (Otomatis terisi jika ada)</label>
+                                                    <label class="form-label small mb-0">ID Event (Otomatis terisi jika
+                                                        ada)</label>
                                                     <input type="text" name="trainings[0][id_event]"
-                                                           class="form-control form-control-sm id-event-input"
-                                                           placeholder="ID Event (mis: T001)"
-                                                           maxlength="255">
+                                                        class="form-control form-control-sm id-event-input"
+                                                        placeholder="ID Event (mis: T001)" maxlength="255">
                                                 </div>
                                                 <div class="col-md-5">
                                                     <label class="form-label small mb-0">Tgl Mulai</label>
-                                                    <input type="date" name="trainings[0][tanggal_mulai]" class="form-control form-control-sm">
+                                                    <input type="date" name="trainings[0][tanggal_mulai]"
+                                                        class="form-control form-control-sm">
                                                 </div>
                                                 <div class="col-md-5">
                                                     <label class="form-label small mb-0">Tgl Selesai</label>
-                                                    <input type="date" name="trainings[0][tanggal_selesai]" class="form-control form-control-sm">
+                                                    <input type="date" name="trainings[0][tanggal_selesai]"
+                                                        class="form-control form-control-sm">
                                                 </div>
                                                 <div class="col-md-2">
                                                     <label class="form-label small mb-0">Status</label>
-                                                    <select name="trainings[0][status_pelatihan]" class="form-select form-select-sm">
+                                                    <select name="trainings[0][status_pelatihan]"
+                                                        class="form-select form-select-sm">
                                                         <option value="" selected disabled>Pilih</option>
                                                         <option value="Online">Online</option>
                                                         <option value="Offline">Offline</option>
                                                     </select>
                                                 </div>
                                                 <div class="col-12 text-end">
-                                                    <button type="button" class="btn btn-danger btn-sm remove-pelatihan disabled">Hapus</button>
+                                                    <button type="button"
+                                                        class="btn btn-danger btn-sm remove-pelatihan disabled">Hapus</button>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <button type="button" class="btn btn-sm btn-success mb-3" onclick="addPelatihanInput({{ $employee->id }})">Tambah Input Lain</button>
+                                    <button type="button" class="btn btn-sm btn-success mb-3"
+                                        onclick="addPelatihanInput({{ $employee->id }})">Tambah Input Lain</button>
 
                                     <div class="d-grid gap-2">
-                                        <button type="submit" class="btn btn-primary btn-sm">Simpan Pelatihan</button>
+                                        <button type="submit" class="btn btn-primary btn-sm">Simpan
+                                            Pelatihan</button>
                                     </div>
                                 </form>
                             </div>
@@ -292,7 +338,8 @@
             @empty {{-- Tampilkan pesan jika tidak ada data setelah difilter --}}
                 <div class="col-12">
                     <div class="alert alert-info text-center py-4 border-0 shadow-sm rounded-3">
-                        <i class="bi bi-info-circle fs-4 me-2"></i> **Tidak ada data karyawan yang ditemukan.** Coba dengan kata kunci pencarian lain atau reset filter.
+                        <i class="bi bi-info-circle fs-4 me-2"></i> **Tidak ada data karyawan yang ditemukan.** Coba
+                        dengan kata kunci pencarian lain atau reset filter.
                     </div>
                 </div>
             @endforelse
@@ -306,8 +353,125 @@
         {{-- END: KONTEN ASLI TRAINING.BLADE.PHP --}}
     </div>
 
+    {{-- BAGIAN BARU: MODAL REKAP EVENT PELATIHAN --}}
+    <div class="modal fade" id="eventSummaryModal" tabindex="-1" aria-labelledby="eventSummaryModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable"> {{-- Modal besar dan bisa di-scroll --}}
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="eventSummaryModalLabel"><i class="bi bi-bar-chart-fill me-2"></i>
+                        Rekap Partisipasi Pelatihan per Event</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    {{-- FORM FILTER BERDASARKAN EVENT --}}
+                    <div class="mb-4 p-3 bg-light rounded-3 border">
+                        <form id="filterEventForm" action="#" method="GET">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-8">
+                                    <label for="filter_event_name" class="form-label fw-bold">Pilih Nama Pelatihan
+                                        (Event)</label>
+                                    <input type="text" class="form-control" id="filter_event_name"
+                                        name="event_name" placeholder="Ketik atau pilih nama pelatihan..."
+                                        list="datalistOptions" required>
+                                </div>
+                                <div class="col-md-4 d-grid">
+                                    <button type="submit" class="btn btn-dark" id="loadEventDataBtn">
+                                        <i class="bi bi-eye-fill me-1"></i> Tampilkan Data Rekap
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    {{-- AREA HASIL REKAP --}}
+                    <div id="eventSummaryResults" style="display: none;">
+                        <h4 class="mb-3">Detail Partisipasi: <span id="selectedEventName"
+                                class="badge bg-primary"></span></h4>
+
+                        {{-- NAV TABS UNTUK ONLINE DAN OFFLINE --}}
+                        <ul class="nav nav-tabs mb-3" id="trainingStatusTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="online-tab" data-bs-toggle="tab"
+                                    data-bs-target="#online-pane" type="button" role="tab"
+                                    aria-controls="online-pane" aria-selected="true">
+                                    <i class="bi bi-globe me-1"></i> Peserta Online (<span id="onlineCount">0</span>)
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="offline-tab" data-bs-toggle="tab"
+                                    data-bs-target="#offline-pane" type="button" role="tab"
+                                    aria-controls="offline-pane" aria-selected="false">
+                                    <i class="bi bi-geo-alt-fill me-1"></i> Peserta Offline (<span
+                                        id="offlineCount">0</span>)
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content" id="trainingStatusTabsContent">
+                            {{-- TAB ONLINE --}}
+                            <div class="tab-pane fade show active" id="online-pane" role="tabpanel"
+                                aria-labelledby="online-tab" tabindex="0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped table-sm">
+                                        <thead class="table-primary">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>NIK</th>
+                                                <th>Nama Karyawan</th>
+                                                <th>Tanggal Mulai</th>
+                                                <th>Tanggal Selesai</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="onlineParticipantsBody">
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted">Pilih event dan klik
+                                                    'Tampilkan Data Rekap'.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {{-- TAB OFFLINE --}}
+                            <div class="tab-pane fade" id="offline-pane" role="tabpanel"
+                                aria-labelledby="offline-tab" tabindex="0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped table-sm">
+                                        <thead class="table-success">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>NIK</th>
+                                                <th>Nama Karyawan</th>
+                                                <th>Tanggal Mulai</th>
+                                                <th>Tanggal Selesai</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="offlineParticipantsBody">
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted">Pilih event dan klik
+                                                    'Tampilkan Data Rekap'.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {{-- END AREA HASIL REKAP --}}
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{-- END BAGIAN BARU: MODAL REKAP EVENT PELATIHAN --}}
+
     {{-- BAGIAN 3: MODAL EDIT PELATIHAN --}}
-    <div class="modal fade" id="editTrainingModal" tabindex="-1" aria-labelledby="editTrainingModalLabel" aria-hidden="true">
+    <div class="modal fade" id="editTrainingModal" tabindex="-1" aria-labelledby="editTrainingModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -320,16 +484,19 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="edit_nama_pelatihan" class="form-label">Nama Pelatihan</label>
-                            <input type="text" class="form-control" id="edit_nama_pelatihan" name="nama_pelatihan" required>
+                            <input type="text" class="form-control" id="edit_nama_pelatihan"
+                                name="nama_pelatihan" required>
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="edit_tanggal_mulai" class="form-label">Tanggal Mulai</label>
-                                <input type="date" class="form-control" id="edit_tanggal_mulai" name="tanggal_mulai">
+                                <input type="date" class="form-control" id="edit_tanggal_mulai"
+                                    name="tanggal_mulai">
                             </div>
                             <div class="col-md-6">
                                 <label for="edit_tanggal_selesai" class="form-label">Tanggal Selesai</label>
-                                <input type="date" class="form-control" id="edit_tanggal_selesai" name="tanggal_selesai">
+                                <input type="date" class="form-control" id="edit_tanggal_selesai"
+                                    name="tanggal_selesai">
                             </div>
                         </div>
                         <div class="mb-3">
@@ -543,7 +710,7 @@
             modalBodyInputMulai.value = mulai
             modalBodyInputSelesai.value = selesai
             // Pastikan dropdown status terpilih
-            if(modalBodySelectStatus.querySelector(`option[value="${status}"]`)){
+            if (modalBodySelectStatus.querySelector(`option[value="${status}"]`)) {
                 modalBodySelectStatus.value = status;
             } else {
                 modalBodySelectStatus.value = ''; // Reset jika status null/invalid
@@ -553,6 +720,148 @@
             const updateRoute = "{{ route('trainings.update', ['training' => ':id']) }}";
             modalForm.action = updateRoute.replace(':id', trainingId);
         })
+
+
+        // BARU: Logika Modal Rekap Event (Menggunakan AJAX)
+        $(document).ready(function() {
+            // Handler untuk submit form filter di dalam modal
+            $('#filterEventForm').on('submit', function(e) {
+                e.preventDefault();
+                const eventName = $('#filter_event_name').val().trim();
+                const resultsArea = $('#eventSummaryResults');
+                const selectedEventNameSpan = $('#selectedEventName');
+                const onlineBody = $('#onlineParticipantsBody');
+                const offlineBody = $('#offlineParticipantsBody');
+                const onlineCountSpan = $('#onlineCount');
+                const offlineCountSpan = $('#offlineCount');
+
+                // 1. Validasi
+                if (!eventName) {
+                    alert('Nama pelatihan harus diisi.');
+                    return;
+                }
+
+                // 2. Lakukan Panggilan AJAX ke Controller
+                $.ajax({
+                    url: '{{ route('trainings.summary_by_event') }}', // Memanggil route baru
+                    method: 'GET',
+                    data: {
+                        event_name: eventName
+                    },
+                    beforeSend: function() {
+                        // Tampilkan pesan loading
+                        onlineBody.html(
+                            '<tr><td colspan="5" class="text-center"><i class="bi bi-arrow-clockwise spin me-2"></i>Memuat data...</td></tr>'
+                            );
+                        offlineBody.html(
+                            '<tr><td colspan="5" class="text-center"><i class="bi bi-arrow-clockwise spin me-2"></i>Memuat data...</td></tr>'
+                            );
+                        resultsArea.show();
+                    },
+                    success: function(data) {
+                        // Data yang diterima adalah objek { online: [...], offline: [...] }
+
+                        // 3. Update UI
+                        selectedEventNameSpan.text(eventName);
+
+                        // Fungsi helper untuk mengisi tabel
+                        const fillTable = (body, participants, status) => {
+                            body.empty();
+                            if (participants.length > 0) {
+                                let html = '';
+                                participants.forEach((p, index) => {
+                                    // Menggunakan Date object untuk parsing dan formatting tanggal
+                                    const tglMulai = p.mulai ? new Date(p.mulai)
+                                        .toLocaleDateString('id-ID', {
+                                            year: 'numeric',
+                                            month: '2-digit',
+                                            day: '2-digit'
+                                        }) : '-';
+                                    const tglSelesai = p.selesai ? new Date(p
+                                        .selesai).toLocaleDateString('id-ID', {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit'
+                                    }) : '-';
+                                    html += `
+                                        <tr>
+                                            <td>${index + 1}</td>
+                                            <td>${p.nik}</td>
+                                            <td>${p.nama}</td>
+                                            <td>${tglMulai}</td>
+                                            <td>${tglSelesai}</td>
+                                        </tr>
+                                    `;
+                                });
+                                body.html(html);
+                            } else {
+                                body.html(
+                                    `<tr><td colspan="5" class="text-center text-muted">Tidak ada peserta ${status} untuk event ini.</td></tr>`
+                                    );
+                            }
+                        };
+
+                        // --- TAB ONLINE ---
+                        fillTable(onlineBody, data.online, 'online');
+                        onlineCountSpan.text(data.online.length);
+
+                        // --- TAB OFFLINE ---
+                        fillTable(offlineBody, data.offline, 'offline');
+                        offlineCountSpan.text(data.offline.length);
+
+                        // Tampilkan Area Hasil
+                        resultsArea.show();
+
+                        // Atur tab yang aktif (pilih yang ada data atau default ke online)
+                        const tabToShow = (data.online.length > 0) ? document.getElementById(
+                            'online-tab') : document.getElementById('offline-tab');
+                        if (tabToShow) {
+                            const tabInstance = bootstrap.Tab.getInstance(tabToShow);
+                            if (tabInstance) {
+                                tabInstance.show();
+                            }
+                        }
+
+                    },
+                    error: function(xhr) {
+                        let errorMessage = 'Terjadi kesalahan saat mengambil data rekap.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = 'Error: ' + xhr.responseJSON.message;
+                        } else if (xhr.statusText) {
+                            errorMessage = 'Error: ' + xhr.statusText;
+                        }
+                        onlineBody.html(
+                            `<tr><td colspan="5" class="text-center text-danger">${errorMessage}</td></tr>`
+                            );
+                        offlineBody.html(
+                            `<tr><td colspan="5" class="text-center text-danger">${errorMessage}</td></tr>`
+                            );
+                        onlineCountSpan.text('0');
+                        offlineCountSpan.text('0');
+                        resultsArea.show();
+                    }
+                });
+            });
+
+            // Reset tampilan saat modal ditutup
+            const eventSummaryModal = document.getElementById('eventSummaryModal');
+            eventSummaryModal.addEventListener('hidden.bs.modal', function() {
+                $('#filter_event_name').val('');
+                $('#eventSummaryResults').hide();
+                $('#onlineParticipantsBody').html(
+                    '<tr><td colspan="5" class="text-center text-muted">Pilih event dan klik \'Tampilkan Data Rekap\'.</td></tr>'
+                    );
+                $('#offlineParticipantsBody').html(
+                    '<tr><td colspan="5" class="text-center text-muted">Pilih event dan klik \'Tampilkan Data Rekap\'.</td></tr>'
+                    );
+                $('#onlineCount').text('0');
+                $('#offlineCount').text('0');
+                $('#selectedEventName').text('');
+                // Pastikan tab online yang aktif saat ditutup
+                bootstrap.Tab.getInstance(document.getElementById('online-tab')).show();
+            });
+        });
+        // END BARU: Logika Modal Rekap Event
     </script>
 </body>
 

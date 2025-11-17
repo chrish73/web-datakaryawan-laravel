@@ -51,3 +51,11 @@ Route::post('/employees/training', [EmployeeController::class, 'storeTraining'])
 Route::put('/trainings/{training}', [EmployeeController::class, 'updateTraining'])->name('trainings.update');
 Route::delete('/trainings/{training}', [EmployeeController::class, 'deleteTraining'])->name('trainings.delete');
 Route::get('/employees/training/export', [EmployeeController::class, 'exportTraining'])->name('trainings.export');
+
+Route::get('/trainings/summary-by-event', [EmployeeController::class, 'getTrainingSummaryByEvent'])->name('trainings.summary_by_event');
+
+// --- START: NEW MONTHLY BAND CHART ROUTES ---
+Route::get('/employees/band-monthly', [EmployeeController::class, 'showBandPositionMonthlyChart'])->name('employees.band_position_monthly_chart');
+Route::get('/employees/band-monthly-data', [EmployeeController::class, 'bandPositionMonthlyChartData'])->name('employees.band_position_monthly_data');
+Route::get('/employees/band-position-monthly-detail/{year}/{month}', [EmployeeController::class, 'getBandPositionMonthlyDetails']);
+// --- END: NEW MONTHLY BAND CHART ROUTES ---
