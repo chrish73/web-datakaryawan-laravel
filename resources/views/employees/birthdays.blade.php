@@ -111,6 +111,10 @@
                             href="{{ route('employees.chart') }}"><i class="bi bi-bar-chart-line-fill me-1"></i> Data Band Posisi</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {{ Request::routeIs('employees.band_position_monthly_chart') ? 'active' : '' }}"
+                            href="{{ route('employees.band_position_monthly_chart') }}"><i class="bi bi-calendar-check-fill me-1"></i> Promosi Band Posisi Bulanan</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {{ Request::routeIs('employees.age_group_chart') ? 'active' : '' }}"
                             href="{{ route('employees.age_group_chart' ) }}"><i class="bi bi-graph-up me-1"></i> Data Kelompok Usia</a>
                     </li>
@@ -118,6 +122,20 @@
                         <a class="nav-link {{ Request::is('employees/band') ? 'active' : '' }}"
                             href="/employees/band"><i class="bi bi-layers-fill me-1"></i>Lama Band Posisi</a>
                     </li>
+                    {{-- START: Tambahan Link Events --}}
+                    <li class="nav-item">
+                        {{-- Ganti 'events.training' dengan nama route yang sebenarnya jika berbeda --}}
+                        <a class="nav-link {{ Request::routeIs('employees.training_input') ? 'active' : '' }}"
+                            href="{{ route('employees.training_input') }}">
+                            <i class="bi bi-calendar-event-fill me-1"></i> Data Pelatihan
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ Request::routeIs('employees.training_summary_view') ? 'active' : '' }}"
+                            href="{{ route('employees.training_summary_view') }}">
+                            <i class="bi bi-journal-check me-1"></i> Rekap Data Pelatihan
+                        </a>
+                    </li>                    
                     <li class="nav-item">
                         <a class="nav-link active" href="{{ route('employees.today_birthdays') }}">
                             <i class="bi bi-gift-fill me-1"></i> Ulang Tahun Hari Ini <span id="birthday-badge" class="badge text-bg-warning rounded-pill ms-1" style="display: none;"></span>

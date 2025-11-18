@@ -56,6 +56,10 @@
                             Band Posisi</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {{ Request::routeIs('employees.band_position_monthly_chart') ? 'active' : '' }}"
+                            href="{{ route('employees.band_position_monthly_chart') }}"><i class="bi bi-calendar-check-fill me-1"></i> Promosi Band Posisi Bulanan</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {{ Request::routeIs('employees.age_group_chart') ? 'active' : '' }}"
                             href="{{ route('employees.age_group_chart') }}"><i class="bi bi-graph-up me-1"></i> Data
                             Kelompok Usia</a>
@@ -64,6 +68,21 @@
                         <a class="nav-link {{ Request::is('employees/band') ? 'active' : '' }}"
                             href="/employees/band"><i class="bi bi-layers-fill me-1"></i>Lama Band Posisi</a>
                     </li>
+                    {{-- START: Tambahan Link Events --}}
+                    <li class="nav-item">
+                        {{-- Ganti 'events.training' dengan nama route yang sebenarnya jika berbeda --}}
+                        <a class="nav-link {{ Request::routeIs('employees.training_input') ? 'active' : '' }}"
+                            href="{{ route('employees.training_input') }}">
+                            <i class="bi bi-calendar-event-fill me-1"></i> Data Pelatihan
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ Request::routeIs('employees.training_summary_view') ? 'active' : '' }}"
+                            href="{{ route('employees.training_summary_view') }}">
+                            <i class="bi bi-journal-check me-1"></i> Rekap Data Pelatihan
+                        </a>
+                    </li>
+                    {{-- END: Tambahan Link Events --}}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('employees.today_birthdays') }}">
                             <i class="bi bi-gift-fill me-1"></i> Ulang Tahun Hari Ini <span id="birthday-badge"
@@ -180,19 +199,18 @@
             let currentActiveBands = [];
 
             const colors = [
-                'rgba(0, 150, 136, 0.8)', // I
-                'rgba(255, 152, 0, 0.8)', // II
-                'rgba(192, 57, 43, 0.8)', // III
-                'rgba(300, 255, 20, 0.8)', // IV
-                'rgba(60, 180, 75, 0.8)', // V
-                'rgba(70, 240, 240, 0.8)', // VI
-                'rgba(245, 130, 48, 0.8)', // N/A
-            ];
+                        'rgba(255, 99, 132, 0.8)',
+                        'rgba(54, 162, 235, 0.8)',
+                        'rgba(255, 206, 86, 0.8)',
+                        'rgba(75, 192, 192, 0.8)',
+                        'rgba(153, 102, 255, 0.8)',
+                        'rgba(255, 159, 64, 0.8)',
+                    ];
 
             // Map untuk mendapatkan warna yang konsisten berdasarkan nama Band
             const bandColorMap = {};
             ['I', 'II', 'III', 'IV', 'V', 'VI'].forEach((band, index) => {
-                bandColorMap[`Band ${band}`] = colors[index % colors.length];
+                bandColorMap[`Band Posisi ${band}`] = colors[index % colors.length];
             });
 
             // Fungsi baru untuk mengagregasi raw data (pivot)
@@ -228,7 +246,7 @@
                 const sortedBands = Array.from(bandsInChart).sort();
 
                 const allBandDatasets = sortedBands.map((band) => {
-                    const label = `Band ${band}`;
+                    const label = `Band Posisi ${band}`;
                     const color = bandColorMap[label] || colors[sortedBands.indexOf(band) % colors.length];
 
                     return {
@@ -334,7 +352,7 @@
 
                         // Ambil Band Posisi yang diklik
                         const bandLabel = bandDurationChart.data.datasets[point.datasetIndex].label;
-                        const clickedBand = bandLabel.replace('Band ', '').trim(); // 'I', 'II', etc.
+                        const clickedBand = bandLabel.replace('Band Posisi ', '').trim();
 
                         // Ambil Durasi Band yang sedang aktif (Client-Side filter)
                         const activeDurationGroups = Array.from(durationFilterContainer.querySelectorAll(

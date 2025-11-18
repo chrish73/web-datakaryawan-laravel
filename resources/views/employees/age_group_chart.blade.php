@@ -37,6 +37,10 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {{ Request::routeIs('employees.band_position_monthly_chart') ? 'active' : '' }}"
+                            href="{{ route('employees.band_position_monthly_chart') }}"><i class="bi bi-calendar-check-fill me-1"></i> Promosi Band Posisi Bulanan</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {{ Request::routeIs('employees.age_group_chart') ? 'active' : '' }}"
                             href="{{ route('employees.age_group_chart') }}">
                             <i class="bi bi-graph-up me-1"></i> Data Kelompok Usia
@@ -47,6 +51,20 @@
                             <i class="bi bi-layers-fill me-1"></i>Lama Band Posisi
                         </a>
                     </li>
+                    {{-- START: Tambahan Link Events --}}
+                    <li class="nav-item">
+                        {{-- Ganti 'events.training' dengan nama route yang sebenarnya jika berbeda --}}
+                        <a class="nav-link {{ Request::routeIs('employees.training_input') ? 'active' : '' }}"
+                            href="{{ route('employees.training_input') }}">
+                            <i class="bi bi-calendar-event-fill me-1"></i> Data Pelatihan
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ Request::routeIs('employees.training_summary_view') ? 'active' : '' }}"
+                            href="{{ route('employees.training_summary_view') }}">
+                            <i class="bi bi-journal-check me-1"></i> Rekap Data Pelatihan
+                        </a>
+                    </li>                    
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('employees.today_birthdays') }}">
                             <i class="bi bi-gift-fill me-1"></i> Ulang Tahun Hari Ini
@@ -150,13 +168,13 @@
                     } = data;
 
                     const colors = [
-                        'rgba(54, 162, 235, 0.8)',
-                        'rgba(75, 192, 192, 0.8)',
-                        'rgba(255, 206, 86, 0.8)',
                         'rgba(255, 99, 132, 0.8)',
-                        'rgba(312, 532, 132, 0.8)',
-                        'rgba(634, 643, 132, 0.8)',
-                        'rgba(123, 99, 132, 0.8)',
+                        'rgba(54, 162, 235, 0.8)',
+                        'rgba(255, 206, 86, 0.8)',
+                        'rgba(75, 192, 192, 0.8)',
+                        'rgba(153, 102, 255, 0.8)',
+                        'rgba(255, 159, 64, 0.8)',
+                        'rgba(123, 45, 34, 0.8)',
                     ];
 
                     const datasets = age_groups.map((group, index) => ({

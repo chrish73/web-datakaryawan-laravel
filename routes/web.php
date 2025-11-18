@@ -52,6 +52,13 @@ Route::put('/trainings/{training}', [EmployeeController::class, 'updateTraining'
 Route::delete('/trainings/{training}', [EmployeeController::class, 'deleteTraining'])->name('trainings.delete');
 Route::get('/employees/training/export', [EmployeeController::class, 'exportTraining'])->name('trainings.export');
 
+// Route baru untuk menampilkan halaman rekap event (VIEW)
+Route::get('/employees/training/summary', [EmployeeController::class, 'showTrainingSummary'])->name('employees.training_summary_view');
+
+// Route baru untuk menampilkan detail peserta per event (VIEW) - DIHAPUS (diganti AJAX endpoint)
+// Route::get('/employees/training/summary/detail', [EmployeeController::class, 'showTrainingDetail'])->name('employees.training_detail_view');
+
+
 Route::get('/trainings/summary-by-event', [EmployeeController::class, 'getTrainingSummaryByEvent'])->name('trainings.summary_by_event');
 
 // --- START: NEW MONTHLY BAND CHART ROUTES ---

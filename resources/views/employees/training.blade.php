@@ -50,6 +50,10 @@
                             Band Posisi</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {{ Request::routeIs('employees.band_position_monthly_chart') ? 'active' : '' }}"
+                            href="{{ route('employees.band_position_monthly_chart') }}"><i class="bi bi-calendar-check-fill me-1"></i> Promosi Band Posisi Bulanan</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {{ Request::routeIs('employees.age_group_chart') ? 'active' : '' }}"
                             href="{{ route('employees.age_group_chart') }}"><i class="bi bi-graph-up me-1"></i> Data
                             Kelompok Usia</a>
@@ -59,10 +63,17 @@
                             href="/employees/band"><i class="bi bi-layers-fill me-1"></i>Lama Band Posisi</a>
                     </li>
                     {{-- START: LINK EVENTS (Diaktifkan saat berada di halaman ini) --}}
+                    {{-- Diperbarui: Link teks dan pengecekan aktifitas untuk konsistensi --}}
                     <li class="nav-item">
                         <a class="nav-link {{ Request::routeIs('employees.training_input') ? 'active' : '' }}"
                             href="{{ route('employees.training_input') }}">
-                            <i class="bi bi-calendar-event-fill me-1"></i> History Events
+                            <i class="bi bi-calendar-event-fill me-1"></i> Data Pelatihan
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ Request::routeIs('employees.training_summary_view') ? 'active' : '' }}"
+                            href="{{ route('employees.training_summary_view') }}">
+                            <i class="bi bi-journal-check me-1"></i> Rekap Data Pelatihan
                         </a>
                     </li>
                     {{-- END: LINK EVENTS --}}
@@ -149,14 +160,13 @@
                                 class="bi bi-x-circle"></i></a>
                     </div>
                 </form>
-                {{-- BARU: TOMBOL UNTUK KE REKAP EVENT --}}
-                <div class="mb-4">
-                    <button class="btn btn-primary shadow-sm" type="button" data-bs-toggle="modal"
-                        data-bs-target="#eventSummaryModal">
+                {{-- DIHAPUS: LINK UNTUK KE HALAMAN REKAP EVENT BARU --}}
+                {{-- <div class="mb-4">
+                    <a href="{{ route('employees.training_summary_view') }}" class="btn btn-primary shadow-sm">
                         <i class="bi bi-bar-chart-fill me-2"></i> Lihat Rekap Partisipasi per Event
-                    </button>
-                </div>
-                {{-- END BARU: TOMBOL UNTUK KE REKAP EVENT --}}
+                    </a>
+                </div> --}}
+                {{-- END BARU: LINK UNTUK KE HALAMAN REKAP EVENT BARU --}}
             </div>
         </div>
 
@@ -352,122 +362,6 @@
 
         {{-- END: KONTEN ASLI TRAINING.BLADE.PHP --}}
     </div>
-
-    {{-- BAGIAN BARU: MODAL REKAP EVENT PELATIHAN --}}
-    <div class="modal fade" id="eventSummaryModal" tabindex="-1" aria-labelledby="eventSummaryModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable"> {{-- Modal besar dan bisa di-scroll --}}
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="eventSummaryModalLabel"><i class="bi bi-bar-chart-fill me-2"></i>
-                        Rekap Partisipasi Pelatihan per Event</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    {{-- FORM FILTER BERDASARKAN EVENT --}}
-                    <div class="mb-4 p-3 bg-light rounded-3 border">
-                        <form id="filterEventForm" action="#" method="GET">
-                            <div class="row g-3 align-items-end">
-                                <div class="col-md-8">
-                                    <label for="filter_event_name" class="form-label fw-bold">Pilih Nama Pelatihan
-                                        (Event)</label>
-                                    <input type="text" class="form-control" id="filter_event_name"
-                                        name="event_name" placeholder="Ketik atau pilih nama pelatihan..."
-                                        list="datalistOptions" required>
-                                </div>
-                                <div class="col-md-4 d-grid">
-                                    <button type="submit" class="btn btn-dark" id="loadEventDataBtn">
-                                        <i class="bi bi-eye-fill me-1"></i> Tampilkan Data Rekap
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-
-                    {{-- AREA HASIL REKAP --}}
-                    <div id="eventSummaryResults" style="display: none;">
-                        <h4 class="mb-3">Detail Partisipasi: <span id="selectedEventName"
-                                class="badge bg-primary"></span></h4>
-
-                        {{-- NAV TABS UNTUK ONLINE DAN OFFLINE --}}
-                        <ul class="nav nav-tabs mb-3" id="trainingStatusTabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="online-tab" data-bs-toggle="tab"
-                                    data-bs-target="#online-pane" type="button" role="tab"
-                                    aria-controls="online-pane" aria-selected="true">
-                                    <i class="bi bi-globe me-1"></i> Peserta Online (<span id="onlineCount">0</span>)
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="offline-tab" data-bs-toggle="tab"
-                                    data-bs-target="#offline-pane" type="button" role="tab"
-                                    aria-controls="offline-pane" aria-selected="false">
-                                    <i class="bi bi-geo-alt-fill me-1"></i> Peserta Offline (<span
-                                        id="offlineCount">0</span>)
-                                </button>
-                            </li>
-                        </ul>
-
-                        <div class="tab-content" id="trainingStatusTabsContent">
-                            {{-- TAB ONLINE --}}
-                            <div class="tab-pane fade show active" id="online-pane" role="tabpanel"
-                                aria-labelledby="online-tab" tabindex="0">
-                                <div class="table-responsive">
-                                    <table class="table table-hover table-striped table-sm">
-                                        <thead class="table-primary">
-                                            <tr>
-                                                <th>#</th>
-                                                <th>NIK</th>
-                                                <th>Nama Karyawan</th>
-                                                <th>Tanggal Mulai</th>
-                                                <th>Tanggal Selesai</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="onlineParticipantsBody">
-                                            <tr>
-                                                <td colspan="5" class="text-center text-muted">Pilih event dan klik
-                                                    'Tampilkan Data Rekap'.</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            {{-- TAB OFFLINE --}}
-                            <div class="tab-pane fade" id="offline-pane" role="tabpanel"
-                                aria-labelledby="offline-tab" tabindex="0">
-                                <div class="table-responsive">
-                                    <table class="table table-hover table-striped table-sm">
-                                        <thead class="table-success">
-                                            <tr>
-                                                <th>#</th>
-                                                <th>NIK</th>
-                                                <th>Nama Karyawan</th>
-                                                <th>Tanggal Mulai</th>
-                                                <th>Tanggal Selesai</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="offlineParticipantsBody">
-                                            <tr>
-                                                <td colspan="5" class="text-center text-muted">Pilih event dan klik
-                                                    'Tampilkan Data Rekap'.</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {{-- END AREA HASIL REKAP --}}
-
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    {{-- END BAGIAN BARU: MODAL REKAP EVENT PELATIHAN --}}
 
     {{-- BAGIAN 3: MODAL EDIT PELATIHAN --}}
     <div class="modal fade" id="editTrainingModal" tabindex="-1" aria-labelledby="editTrainingModalLabel"
@@ -720,148 +614,7 @@
             const updateRoute = "{{ route('trainings.update', ['training' => ':id']) }}";
             modalForm.action = updateRoute.replace(':id', trainingId);
         })
-
-
-        // BARU: Logika Modal Rekap Event (Menggunakan AJAX)
-        $(document).ready(function() {
-            // Handler untuk submit form filter di dalam modal
-            $('#filterEventForm').on('submit', function(e) {
-                e.preventDefault();
-                const eventName = $('#filter_event_name').val().trim();
-                const resultsArea = $('#eventSummaryResults');
-                const selectedEventNameSpan = $('#selectedEventName');
-                const onlineBody = $('#onlineParticipantsBody');
-                const offlineBody = $('#offlineParticipantsBody');
-                const onlineCountSpan = $('#onlineCount');
-                const offlineCountSpan = $('#offlineCount');
-
-                // 1. Validasi
-                if (!eventName) {
-                    alert('Nama pelatihan harus diisi.');
-                    return;
-                }
-
-                // 2. Lakukan Panggilan AJAX ke Controller
-                $.ajax({
-                    url: '{{ route('trainings.summary_by_event') }}', // Memanggil route baru
-                    method: 'GET',
-                    data: {
-                        event_name: eventName
-                    },
-                    beforeSend: function() {
-                        // Tampilkan pesan loading
-                        onlineBody.html(
-                            '<tr><td colspan="5" class="text-center"><i class="bi bi-arrow-clockwise spin me-2"></i>Memuat data...</td></tr>'
-                            );
-                        offlineBody.html(
-                            '<tr><td colspan="5" class="text-center"><i class="bi bi-arrow-clockwise spin me-2"></i>Memuat data...</td></tr>'
-                            );
-                        resultsArea.show();
-                    },
-                    success: function(data) {
-                        // Data yang diterima adalah objek { online: [...], offline: [...] }
-
-                        // 3. Update UI
-                        selectedEventNameSpan.text(eventName);
-
-                        // Fungsi helper untuk mengisi tabel
-                        const fillTable = (body, participants, status) => {
-                            body.empty();
-                            if (participants.length > 0) {
-                                let html = '';
-                                participants.forEach((p, index) => {
-                                    // Menggunakan Date object untuk parsing dan formatting tanggal
-                                    const tglMulai = p.mulai ? new Date(p.mulai)
-                                        .toLocaleDateString('id-ID', {
-                                            year: 'numeric',
-                                            month: '2-digit',
-                                            day: '2-digit'
-                                        }) : '-';
-                                    const tglSelesai = p.selesai ? new Date(p
-                                        .selesai).toLocaleDateString('id-ID', {
-                                        year: 'numeric',
-                                        month: '2-digit',
-                                        day: '2-digit'
-                                    }) : '-';
-                                    html += `
-                                        <tr>
-                                            <td>${index + 1}</td>
-                                            <td>${p.nik}</td>
-                                            <td>${p.nama}</td>
-                                            <td>${tglMulai}</td>
-                                            <td>${tglSelesai}</td>
-                                        </tr>
-                                    `;
-                                });
-                                body.html(html);
-                            } else {
-                                body.html(
-                                    `<tr><td colspan="5" class="text-center text-muted">Tidak ada peserta ${status} untuk event ini.</td></tr>`
-                                    );
-                            }
-                        };
-
-                        // --- TAB ONLINE ---
-                        fillTable(onlineBody, data.online, 'online');
-                        onlineCountSpan.text(data.online.length);
-
-                        // --- TAB OFFLINE ---
-                        fillTable(offlineBody, data.offline, 'offline');
-                        offlineCountSpan.text(data.offline.length);
-
-                        // Tampilkan Area Hasil
-                        resultsArea.show();
-
-                        // Atur tab yang aktif (pilih yang ada data atau default ke online)
-                        const tabToShow = (data.online.length > 0) ? document.getElementById(
-                            'online-tab') : document.getElementById('offline-tab');
-                        if (tabToShow) {
-                            const tabInstance = bootstrap.Tab.getInstance(tabToShow);
-                            if (tabInstance) {
-                                tabInstance.show();
-                            }
-                        }
-
-                    },
-                    error: function(xhr) {
-                        let errorMessage = 'Terjadi kesalahan saat mengambil data rekap.';
-                        if (xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMessage = 'Error: ' + xhr.responseJSON.message;
-                        } else if (xhr.statusText) {
-                            errorMessage = 'Error: ' + xhr.statusText;
-                        }
-                        onlineBody.html(
-                            `<tr><td colspan="5" class="text-center text-danger">${errorMessage}</td></tr>`
-                            );
-                        offlineBody.html(
-                            `<tr><td colspan="5" class="text-center text-danger">${errorMessage}</td></tr>`
-                            );
-                        onlineCountSpan.text('0');
-                        offlineCountSpan.text('0');
-                        resultsArea.show();
-                    }
-                });
-            });
-
-            // Reset tampilan saat modal ditutup
-            const eventSummaryModal = document.getElementById('eventSummaryModal');
-            eventSummaryModal.addEventListener('hidden.bs.modal', function() {
-                $('#filter_event_name').val('');
-                $('#eventSummaryResults').hide();
-                $('#onlineParticipantsBody').html(
-                    '<tr><td colspan="5" class="text-center text-muted">Pilih event dan klik \'Tampilkan Data Rekap\'.</td></tr>'
-                    );
-                $('#offlineParticipantsBody').html(
-                    '<tr><td colspan="5" class="text-center text-muted">Pilih event dan klik \'Tampilkan Data Rekap\'.</td></tr>'
-                    );
-                $('#onlineCount').text('0');
-                $('#offlineCount').text('0');
-                $('#selectedEventName').text('');
-                // Pastikan tab online yang aktif saat ditutup
-                bootstrap.Tab.getInstance(document.getElementById('online-tab')).show();
-            });
-        });
-        // END BARU: Logika Modal Rekap Event
+        // NOTE: Logika Modal Rekap Event telah dihapus untuk memenuhi permintaan menggantinya dengan halaman baru.
     </script>
 </body>
 

@@ -595,6 +595,33 @@ public function showTrainingInput(Request $request)
         return Excel::download(new TrainingExport(), $fileName);
     }
 
+    /**
+     * BARU: Menampilkan rekap ringkasan event pelatihan dalam bentuk tabel.
+     * Data yang diambil: Nama Pelatihan, ID Event, dan Jumlah Partisipan Unik.
+     */
+    public function showTrainingSummary(Request $request)
+    {
+        // Ambil data ringkasan pelatihan per event: Nama Pelatihan, ID Event, dan jumlah partisipan unik.
+        $summaries = TrainingModel::select(
+                'nama_pelatihan',
+                'id_event',
+                DB::raw('COUNT(DISTINCT employee_id) as total_participants')
+            )
+            // Mengelompokkan berdasarkan nama dan id_event. Jika id_event null, mereka akan dikelompokkan bersama.
+            ->groupBy('nama_pelatihan', 'id_event')
+            ->orderBy('nama_pelatihan')
+            ->get();
+
+        // Ambil semua nama pelatihan unik untuk datalist/filter di view detail (jika diperlukan)
+        $uniqueTrainings = TrainingModel::select('nama_pelatihan')
+                                 ->distinct()
+                                 ->orderBy('nama_pelatihan')
+                                 ->pluck('nama_pelatihan');
+
+        // Mengembalikan view baru dengan data ringkasan.
+        return view('employees.training_summary', compact('summaries', 'uniqueTrainings'));
+    }
+
     public function getTrainingSummaryByEvent(Request $request)
     {
         $request->validate([

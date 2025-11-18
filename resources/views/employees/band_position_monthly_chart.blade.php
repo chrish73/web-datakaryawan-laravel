@@ -44,7 +44,7 @@
                             href="{{ route('employees.chart') }}"><i class="bi bi-bar-chart-line-fill me-1"></i> Data Band Posisi</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active"
+                        <a class="nav-link {{ Request::routeIs('employees.band_position_monthly_chart') ? 'active' : '' }}"
                             href="{{ route('employees.band_position_monthly_chart') }}"><i class="bi bi-calendar-check-fill me-1"></i> Promosi Band Posisi Bulanan</a>
                     </li>
                     <li class="nav-item">
@@ -58,7 +58,13 @@
                     <li class="nav-item">
                         <a class="nav-link"
                             href="{{ route('employees.training_input') }}">
-                            <i class="bi bi-calendar-event-fill me-1"></i> History Events
+                            <i class="bi bi-calendar-event-fill me-1"></i>  Data Pelatihan
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ Request::routeIs('employees.training_summary_view') ? 'active' : '' }}"
+                            href="{{ route('employees.training_summary_view') }}">
+                            <i class="bi bi-journal-check me-1"></i> Rekap Data Pelatihan
                         </a>
                     </li>
                     <li class="nav-item">
@@ -142,211 +148,238 @@
     {{-- BARU: Tambahkan CDN plugin datalabels --}}
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
-    <script>
-        const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-        let monthlyBandChart;
+<script>
+    const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    let monthlyBandChart;
 
-        function updateChart(year) {
-            $.ajax({
-                url: '{{ route('employees.band_position_monthly_data') }}',
-                method: 'GET',
-                data: { year: year },
-                success: function(data) {
-                    if (monthlyBandChart) {
-                        monthlyBandChart.destroy();
-                    }
+    function updateChart(year) {
+        $.ajax({
+            url: '{{ route('employees.band_position_monthly_data') }}',
+            method: 'GET',
+            data: { year: year },
+            success: function(data) {
+                if (monthlyBandChart) {
+                    monthlyBandChart.destroy();
+                }
 
-                    // BARU: Daftarkan plugin Datalabels sebelum membuat chart
-                    Chart.register(ChartDataLabels);
+                // BARU: Daftarkan plugin Datalabels sebelum membuat chart
+                Chart.register(ChartDataLabels);
 
-                    const datasets = [];
-                    const allBands = data.bands;
-                    const bandColors = {
-                        'I': 'rgb(255, 99, 132)', 'II': 'rgb(255, 159, 64)', 'III': 'rgb(256, 205, 86)',
-                        'IV': 'rgb(75, 192, 192)', 'V': 'rgb(54, 162, 235)', 'VI': 'rgb(153, 102, 255)'
-                    };
+                // BARU: Logika Dark Mode untuk warna teks dan grid
+                const isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+                const textColor = isDarkMode ? '#f8f9fa' : '#495057'; // Warna Putih Terang untuk Teks
+                const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)'; // Garis kisi redup
+                // END: Logika Dark Mode
+                
+                const datasets = [];
+                const allBands = data.bands;
+                const bandColors = {
+                    'I': 'rgba(255, 99, 132)',
+                    'II': 'rgba(54, 162, 235)',
+                    'III': 'rgba(255, 206, 86)',
+                    'IV': 'rgba(75, 192, 192)', 
+                    'V': 'rgba(153, 102, 255)', 
+                    'VI': 'rgba(255, 159, 64)'
+                };
 
-                    allBands.forEach(band => {
-                        const monthlyData = MONTHS.map((month, index) => {
-                            const monthKey = index + 1;
-                            return data.monthly_data[monthKey] ? (data.monthly_data[monthKey][band] || 0) : 0;
-                        });
-
-                        // Hanya tambahkan dataset jika ada data (count > 0)
-                        if (monthlyData.some(count => count > 0)) {
-                            datasets.push({
-                                label: `Band ${band}`,
-                                data: monthlyData,
-                                backgroundColor: bandColors[band] || 'rgba(128, 128, 128, 0.5)',
-                                borderColor: bandColors[band] ? bandColors[band].replace('rgb', 'rgba').replace(')', ', 1)') : 'rgb(128, 128, 128)',
-                                borderWidth: 1,
-                                type: 'bar',
-                                stack: 'stack1'
-                            });
-                        }
+                allBands.forEach(band => {
+                    const monthlyData = MONTHS.map((month, index) => {
+                        const monthKey = index + 1;
+                        return data.monthly_data[monthKey] ? (data.monthly_data[monthKey][band] || 0) : 0;
                     });
 
-                    const ctx = document.getElementById('monthlyBandChart').getContext('2d');
-                    monthlyBandChart = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: MONTHS,
-                            datasets: datasets
+                    // Hanya tambahkan dataset jika ada data (count > 0)
+                    if (monthlyData.some(count => count > 0)) {
+                        datasets.push({
+                            label: `Band ${band}`,
+                            data: monthlyData,
+                            backgroundColor: bandColors[band] || 'rgba(128, 128, 128, 0.5)',
+                            borderColor: bandColors[band] ? bandColors[band].replace('rgb', 'rgba').replace(')', ', 1)') : 'rgb(128, 128, 128)',
+                            borderWidth: 0,
+                            type: 'bar',
+                            stack: 'stack1'
+                        });
+                    }
+                });
+
+                const ctx = document.getElementById('monthlyBandChart').getContext('2d');
+                monthlyBandChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: MONTHS,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `Promosi Band Posisi per Bulan Tahun ${year}`,
+                                color: textColor // 🎯 PERUBAHAN
+                            },
+                            tooltip: {
+                                mode: 'nearest',
+                                intersect: true
+                            },
+                            legend: {
+                                labels: {
+                                    color: textColor // 🎯 PERUBAHAN
+                                }
+                            },
+                            datalabels: {
+                                formatter: function(value, context) {
+                                    // Hanya tampilkan label jika nilainya lebih dari 0
+                                    return value > 0 ? value : null;
+                                },
+                                anchor: 'center', 
+                                align: 'center'
+                            }
                         },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
+                        scales: {
+                            x: {
+                                stacked: true,
                                 title: {
                                     display: true,
-                                    text: `Promosi Band Posisi per Bulan Tahun ${year}`
+                                    text: 'Bulan Promosi Band Posisi',
+                                    color: textColor // 🎯 PERUBAHAN
                                 },
-                                tooltip: {
-                                    mode: 'index',
-                                    intersect: false
+                                ticks: {
+                                    color: textColor // 🎯 PERUBAHAN
                                 },
-                                // BARU: Konfigurasi Datalabels
-                                datalabels: {
-                                    color: '#fff', // Warna teks label
-                                    font: {
-                                        weight: 'bold',
-                                        size: 10
-                                    },
-                                    formatter: function(value, context) {
-                                        // Hanya tampilkan label jika nilainya lebih dari 0
-                                        return value > 0 ? value : null;
-                                    },
-                                    anchor: 'center', // Posisi label di tengah segmen
-                                    align: 'center'
+                                grid: {
+                                    color: gridColor // 🎯 PERUBAHAN
                                 }
                             },
-                            scales: {
-                                x: {
-                                    stacked: true,
-                                    title: {
-                                        display: true,
-                                        text: 'Bulan Promosi Band Posisi'
-                                    }
+                            y: {
+                                stacked: true,
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Jumlah Karyawan',
+                                    color: textColor // 🎯 PERUBAHAN
                                 },
-                                y: {
-                                    stacked: true,
-                                    beginAtZero: true,
-                                    title: {
-                                        display: true,
-                                        text: 'Jumlah Karyawan'
-                                    },
-                                    ticks: {
-                                        callback: function(value) {
-                                            if (value % 1 === 0) {
-                                                return value;
-                                            }
+                                ticks: {
+                                    color: textColor, // 🎯 PERUBAHAN
+                                    callback: function(value) {
+                                        if (value % 1 === 0) {
+                                            return value;
                                         }
                                     }
+                                },
+                                grid: {
+                                    color: gridColor // 🎯 PERUBAHAN
                                 }
-                            },
-                            onClick: (e) => {
-                                // Menggunakan mode 'nearest' untuk mendeteksi segmen tunggal yang paling dekat dengan titik klik.
-                                const activePoints = monthlyBandChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+                            }
+                        },
+                        onClick: (e) => {
+                            // Menggunakan mode 'nearest' untuk mendeteksi segmen tunggal yang paling dekat dengan titik klik.
+                            const activePoints = monthlyBandChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
 
-                                if (activePoints.length > 0) {
-                                    const firstPoint = activePoints[0]; // Ini adalah segmen yang spesifik diklik
-                                    const monthIndex = firstPoint.index;
-                                    const datasetIndex = firstPoint.datasetIndex;
+                            if (activePoints.length > 0) {
+                                const firstPoint = activePoints[0]; // Ini adalah segmen yang spesifik diklik
+                                const monthIndex = firstPoint.index;
+                                const datasetIndex = firstPoint.datasetIndex;
 
-                                    const month = monthIndex + 1; // 1-based month index
-                                    // Ambil Band yang diklik dari label dataset
-                                    const bandClicked = monthlyBandChart.data.datasets[datasetIndex].label.replace('Band ', '');
-                                    const count = monthlyBandChart.data.datasets[datasetIndex].data[monthIndex];
+                                const month = monthIndex + 1; // 1-based month index
+                                // Ambil Band yang diklik dari label dataset
+                                const bandClicked = monthlyBandChart.data.datasets[datasetIndex].label.replace('Band ', '');
+                                const count = monthlyBandChart.data.datasets[datasetIndex].data[monthIndex];
 
-                                    // Hanya lanjutkan jika jumlahnya > 0
-                                    if (count > 0 && bandClicked) {
-                                        showDetailsModal(month, year, bandClicked);
-                                    }
+                                // Hanya lanjutkan jika jumlahnya > 0
+                                if (count > 0 && bandClicked) {
+                                    showDetailsModal(month, year, bandClicked);
                                 }
                             }
                         }
-                    });
-                },
-                error: function(xhr) {
-                    $('#monthlyBandChart').parent().html('<div class="alert alert-danger">Gagal memuat data grafik: ' + (xhr.responseJSON ? xhr.responseJSON.message : xhr.statusText) + '</div>');
-                }
-            });
-        }
-
-        function showDetailsModal(month, year, band) {
-             $.ajax({
-                url: `/employees/band-position-monthly-detail/${year}/${month}`,
-                method: 'GET',
-                data: { band: band },
-                beforeSend: function() {
-                    $('#detailModalInfo').text(`Detail Karyawan Promosi ke Band ${band} pada Bulan ${MONTHS[month - 1]} Tahun ${year}:`);
-                    $('#employeeDetailsTableBody').html('<tr><td colspan="4" class="text-center text-muted"><i class="bi bi-arrow-clockwise spin me-2"></i>Memuat data...</td></tr>');
-                    new bootstrap.Modal(document.getElementById('detailModal')).show();
-                },
-                success: function(data) {
-                    const tbody = $('#employeeDetailsTableBody');
-                    tbody.empty();
-                    if (data.length > 0) {
-                        data.forEach(employee => {
-                            const date = new Date(employee.tgl_band_posisi);
-                            const tglBandPosisi = date.toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit' });
-
-                            tbody.append(`
-                                <tr>
-                                    <td>${employee.nik}</td>
-                                    <td>${employee.nama}</td>
-                                    <td>${employee.band_posisi}</td>
-                                    <td>${tglBandPosisi}</td>
-                                </tr>
-                            `);
-                        });
-                    } else {
-                        tbody.html('<tr><td colspan="4" class="text-center text-muted">Tidak ada data karyawan yang ditemukan.</td></tr>');
                     }
-                },
-                error: function() {
-                    $('#employeeDetailsTableBody').html('<tr><td colspan="4" class="text-center text-danger">Gagal memuat detail karyawan.</td></tr>');
-                }
-            });
-        }
-
-
-        // Event Listener untuk filter tahun
-        document.getElementById('filterYear').addEventListener('change', function() {
-            const selectedYear = this.value;
-            updateChart(selectedYear);
-        });
-
-        // Load chart saat halaman pertama kali dimuat & Dark Mode
-        document.addEventListener('DOMContentLoaded', function() {
-            // Logika Dark Mode
-            (function() {
-                const getStoredTheme = () => localStorage.getItem('theme');
-                const setStoredTheme = theme => localStorage.setItem('theme', theme);
-                const htmlElement = document.documentElement;
-                const storedTheme = getStoredTheme();
-                if (storedTheme) { htmlElement.setAttribute('data-bs-theme', storedTheme); }
-                else { htmlElement.setAttribute('data-bs-theme', 'light'); setStoredTheme('light'); }
-                const updateToggleUI = (theme) => {
-                    const toggle = document.getElementById('darkModeToggle');
-                    if (toggle) { toggle.checked = theme === 'dark'; }
-                };
-                updateToggleUI(getStoredTheme() || 'light');
-                const toggle = document.getElementById('darkModeToggle');
-                if (toggle) {
-                    toggle.addEventListener('change', () => {
-                        const newTheme = toggle.checked ? 'dark' : 'light';
-                        htmlElement.setAttribute('data-bs-theme', newTheme);
-                        setStoredTheme(newTheme);
-                    });
-                }
-            })();
-
-            const initialYear = document.getElementById('filterYear').value;
-            if (initialYear) {
-                updateChart(initialYear);
+                });
+            },
+            error: function(xhr) {
+                $('#monthlyBandChart').parent().html('<div class="alert alert-danger">Gagal memuat data grafik: ' + (xhr.responseJSON ? xhr.responseJSON.message : xhr.statusText) + '</div>');
             }
         });
-    </script>
+    }
+
+    function showDetailsModal(month, year, band) {
+         $.ajax({
+            url: `/employees/band-position-monthly-detail/${year}/${month}`,
+            method: 'GET',
+            data: { band: band },
+            beforeSend: function() {
+                $('#detailModalInfo').text(`Detail Karyawan Promosi ke Band ${band} pada Bulan ${MONTHS[month - 1]} Tahun ${year}:`);
+                $('#employeeDetailsTableBody').html('<tr><td colspan="4" class="text-center text-muted"><i class="bi bi-arrow-clockwise spin me-2"></i>Memuat data...</td></tr>');
+                new bootstrap.Modal(document.getElementById('detailModal')).show();
+            },
+            success: function(data) {
+                const tbody = $('#employeeDetailsTableBody');
+                tbody.empty();
+                if (data.length > 0) {
+                    data.forEach(employee => {
+                        const date = new Date(employee.tgl_band_posisi);
+                        const tglBandPosisi = date.toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+                        tbody.append(`
+                            <tr>
+                                <td>${employee.nik}</td>
+                                <td>${employee.nama}</td>
+                                <td>${employee.band_posisi}</td>
+                                <td>${tglBandPosisi}</td>
+                            </tr>
+                        `);
+                    });
+                } else {
+                    tbody.html('<tr><td colspan="4" class="text-center text-muted">Tidak ada data karyawan yang ditemukan.</td></tr>');
+                }
+            },
+            error: function() {
+                $('#employeeDetailsTableBody').html('<tr><td colspan="4" class="text-center text-danger">Gagal memuat detail karyawan.</td></tr>');
+            }
+        });
+    }
+
+
+    // Event Listener untuk filter tahun
+    document.getElementById('filterYear').addEventListener('change', function() {
+        const selectedYear = this.value;
+        updateChart(selectedYear);
+    });
+
+    // Load chart saat halaman pertama kali dimuat & Dark Mode
+    document.addEventListener('DOMContentLoaded', function() {
+        // Logika Dark Mode
+        (function() {
+            const getStoredTheme = () => localStorage.getItem('theme');
+            const setStoredTheme = theme => localStorage.setItem('theme', theme);
+            const htmlElement = document.documentElement;
+            const storedTheme = getStoredTheme();
+            if (storedTheme) { htmlElement.setAttribute('data-bs-theme', storedTheme); }
+            else { htmlElement.setAttribute('data-bs-theme', 'light'); setStoredTheme('light'); }
+            const updateToggleUI = (theme) => {
+                const toggle = document.getElementById('darkModeToggle');
+                if (toggle) { toggle.checked = theme === 'dark'; }
+            };
+            updateToggleUI(getStoredTheme() || 'light');
+            const toggle = document.getElementById('darkModeToggle');
+            if (toggle) {
+                toggle.addEventListener('change', () => {
+                    const newTheme = toggle.checked ? 'dark' : 'light';
+                    htmlElement.setAttribute('data-bs-theme', newTheme);
+                    setStoredTheme(newTheme);
+                    // BARU: Panggil updateChart lagi untuk menyesuaikan warna grafik
+                    const currentYear = document.getElementById('filterYear').value;
+                    if (currentYear) {
+                        updateChart(currentYear);
+                    }
+                });
+            }
+        })();
+
+        const initialYear = document.getElementById('filterYear').value;
+        if (initialYear) {
+            updateChart(initialYear);
+        }
+    });
+</script>
 </body>
 </html>
