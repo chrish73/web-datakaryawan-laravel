@@ -633,27 +633,47 @@ class EmployeeController extends Controller
     /**
      * BARU: Menampilkan rekap ringkasan event pelatihan dalam bentuk tabel.
      * Data yang diambil: Nama Pelatihan, ID Event, dan Jumlah Partisipan Unik.
+     * Diperbarui: Sorting berdasarkan tanggal selesai terbaru.
      */
     public function showTrainingSummary(Request $request)
     {
-        // Ambil data ringkasan pelatihan per event: Nama Pelatihan, ID Event, dan jumlah partisipan unik.
+        // 1. Ambil data ringkasan pelatihan per event: Nama Pelatihan, ID Event, dan jumlah partisipan unik.
         $summaries = TrainingModel::select(
-            'nama_pelatihan',
-            'id_event',
-            DB::raw('COUNT(DISTINCT employee_id) as total_participants')
+            'trainings.nama_pelatihan',
+            'trainings.id_event',
+            DB::raw('COUNT(DISTINCT trainings.employee_id) as total_participants'),
+            DB::raw('MAX(trainings.tanggal_selesai) as latest_end_date') // Ambil tanggal selesai terbaru
         )
-            // Mengelompokkan berdasarkan nama dan id_event. Jika id_event null, mereka akan dikelompokkan bersama.
-            ->groupBy('nama_pelatihan', 'id_event')
-            ->orderBy('nama_pelatihan')
+            // Mengelompokkan berdasarkan nama dan id_event.
+            ->groupBy('trainings.nama_pelatihan', 'trainings.id_event')
+            ->orderBy('latest_end_date', 'desc') // Urutkan berdasarkan tanggal selesai terbaru (descending)
+            ->orderBy('trainings.nama_pelatihan', 'asc') // Urutan sekunder
             ->get();
 
-        // Ambil semua nama pelatihan unik untuk datalist/filter di view detail (jika diperlukan)
+        // 2. Fetch latest UNIT. Ini menggunakan N+1 query, tapi ini cara yang relatif aman
+        // untuk mendapatkan Unit yang benar-benar terkait dengan latest_end_date.
+        // Asumsi model Training memiliki relasi 'employee' ke model Employee.
+        foreach ($summaries as $summary) {
+            // Cari record pelatihan tunggal yang memiliki tanggal selesai paling baru untuk event ini
+            $latestTraining = TrainingModel::where('nama_pelatihan', $summary->nama_pelatihan)
+                                           ->where('id_event', $summary->id_event)
+                                           ->where('tanggal_selesai', $summary->latest_end_date)
+                                           ->with('employee:id,UNIT') // Memuat relasi employee (hanya kolom UNIT)
+                                           ->orderBy('id', 'desc') // Jika ada beberapa karyawan di tanggal yang sama, ambil salah satu
+                                           ->first();
+
+            // Tambahkan data Unit ke summary
+            $summary->latest_unit = $latestTraining->employee->UNIT ?? null;
+        }
+
+
+        // 3. Ambil semua nama pelatihan unik untuk datalist/filter di view detail (jika diperlukan)
         $uniqueTrainings = TrainingModel::select('nama_pelatihan')
                                  ->distinct()
                                  ->orderBy('nama_pelatihan')
                                  ->pluck('nama_pelatihan');
 
-        // Mengembalikan view baru dengan data ringkasan.
+        // 4. Mengembalikan view baru dengan data ringkasan.
         return view('employees.training_summary', compact('summaries', 'uniqueTrainings'));
     }
 
@@ -666,9 +686,10 @@ class EmployeeController extends Controller
         $eventName = $request->input('event_name');
 
         // 1. Ambil semua data pelatihan untuk event yang spesifik, dengan eager loading data employee
+        // Diperbarui: Tambahkan 'UNIT' ke select eager loading employee.
         $trainings = TrainingModel::where('nama_pelatihan', $eventName)
-            ->with(['employee:id,nik,nama']) // Eager load data Employee (hanya kolom yang diperlukan)
-            ->get(); //
+            ->with(['employee:id,nik,nama,UNIT']) // Eager load data Employee (tambahkan UNIT)
+            ->get();
 
         // 2. Inisialisasi array untuk menampung hasil yang dipisah
         $summary = [
@@ -683,6 +704,7 @@ class EmployeeController extends Controller
                 $participantData = [
                     'nik' => $training->employee->nik,
                     'nama' => $training->employee->nama,
+                    'unit' => $training->employee->UNIT ?? '-', // Ambil UNIT
                     'mulai' => $training->tanggal_mulai,
                     'selesai' => $training->tanggal_selesai,
                 ];
@@ -696,9 +718,7 @@ class EmployeeController extends Controller
             }
         }
 
-        // 4. Urutkan hasilnya berdasarkan nama karyawan (opsional, untuk tampilan lebih rapi)
-        usort($summary['online'], fn ($a, $b) => strcmp($a['nama'], $b['nama']));
-        usort($summary['offline'], fn ($a, $b) => strcmp($a['nama'], $b['nama']));
+        // Pengurutan di sini dihapus karena sudah diurus di Blade/JS dengan Tanggal Selesai Terbaru
 
         return response()->json($summary); // Mengembalikan data dalam format JSON
     }

@@ -120,6 +120,7 @@
                                 <th>Nama Pelatihan (Event)</th>
                                 <th>ID Event</th>
                                 <th class="text-center">Total Partisipan Unik</th>
+                                <th class="text-center">Terbaru<i class="bi bi-sort-down-alt"></i></th> {{-- DITAMBAHKAN --}}
                                 <th class="text-center">Aksi</th>
                             </tr>
                         </thead>
@@ -136,6 +137,11 @@
                                     <td class="text-center">
                                         <span class="badge bg-primary fs-6">{{ $summary->total_participants }}</span>
                                     </td>
+                                    {{-- Kolom Terakhir Selesai (Asumsi data sudah tersedia dari Controller) --}}
+                                    <td class="text-center">
+                                        {{-- JIKA Anda sudah update Controller: ganti 'latest_end_date' dengan nama field yang benar --}}
+                                        {{ $summary->latest_end_date ? \Carbon\Carbon::parse($summary->latest_end_date)->format('d M Y') : '-' }}
+                                    </td>
                                     <td class="text-center">
                                         {{-- Diubah menjadi Button untuk memicu Modal --}}
                                         <button type="button" class="btn btn-sm btn-info text-white btn-detail-event"
@@ -147,7 +153,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-4" id="noResultsRow">
+                                    <td colspan="6" class="text-center text-muted py-4" id="noResultsRow">
                                         <i class="bi bi-info-circle fs-5 me-2"></i> Tidak ada data pelatihan yang tercatat untuk membuat rekap event.
                                     </td>
                                 </tr>
@@ -200,13 +206,14 @@
                                             <th>#</th>
                                             <th>NIK</th>
                                             <th>Nama Karyawan</th>
+                                            <th>Unit</th> {{-- DITAMBAHKAN --}}
                                             <th>Tanggal Mulai</th>
                                             <th>Tanggal Selesai</th>
                                         </tr>
                                     </thead>
                                     <tbody id="onlineParticipantsBody">
                                         <tr>
-                                            <td colspan="5" class="text-center text-muted">Memuat data...</td>
+                                            <td colspan="6" class="text-center text-muted">Memuat data...</td> {{-- colspan diubah --}}
                                         </tr>
                                     </tbody>
                                 </table>
@@ -223,13 +230,14 @@
                                             <th>#</th>
                                             <th>NIK</th>
                                             <th>Nama Karyawan</th>
+                                            <th>Unit</th> {{-- DITAMBAHKAN --}}
                                             <th>Tanggal Mulai</th>
                                             <th>Tanggal Selesai</th>
                                         </tr>
                                     </thead>
                                     <tbody id="offlineParticipantsBody">
                                         <tr>
-                                            <td colspan="5" class="text-center text-muted">Memuat data...</td>
+                                            <td colspan="6" class="text-center text-muted">Memuat data...</td> {{-- colspan diubah --}}
                                         </tr>
                                     </tbody>
                                 </table>
@@ -251,7 +259,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Logika Dark Mode (Dari training.blade.php)
+        // Logika Dark Mode
         (function() {
             const getStoredTheme = () => localStorage.getItem('theme');
             const setStoredTheme = theme => localStorage.setItem('theme', theme);
@@ -286,7 +294,7 @@
             });
         })();
 
-        // Logika Notifikasi Ulang Tahun (Dari training.blade.php)
+        // Logika Notifikasi Ulang Tahun
         document.addEventListener('DOMContentLoaded', function() {
             fetch('{{ route('employees.birthdays_notification') }}')
                 .then(response => response.json())
@@ -312,13 +320,12 @@
 
                 // Cari semua baris data (mengabaikan baris kosong yang mungkin ada)
                 const dataRows = tableBody.find('tr').filter(function() {
-                    return $(this).find('td').length === 5; // Asumsi baris data memiliki 5 kolom
+                    return $(this).find('td').length === 6; // Asumsi baris data memiliki 6 kolom (setelah penambahan)
                 });
 
                 dataRows.each(function() {
                     const row = $(this);
                     // Ambil teks dari kolom Nama Pelatihan (index 1) dan ID Event (index 2)
-                    // .eq(0) adalah kolom #, .eq(1) adalah Nama Pelatihan, .eq(2) adalah ID Event
                     const eventName = row.find('td').eq(1).text().toLowerCase();
                     const eventId = row.find('td').eq(2).text().toLowerCase();
 
@@ -341,19 +348,20 @@
                         noResultsRow.find('td').html('<i class="bi bi-exclamation-circle fs-5 me-2"></i> Tidak ada pelatihan yang cocok dengan pencarian.');
                     } else {
                         // Jika baris awal 'Tidak ada data' dihapus, tambahkan baris sementara
-                        // Catatan: Ini harusnya tidak terjadi jika ada data awal
                         tableBody.append(
-                            `<tr><td colspan="5" class="text-center text-muted py-4" id="noSearchResults"><i class="bi bi-exclamation-circle fs-5 me-2"></i> Tidak ada pelatihan yang cocok dengan pencarian.</td></tr>`
+                            `<tr><td colspan="6" class="text-center text-muted py-4" id="noSearchResults"><i class="bi bi-exclamation-circle fs-5 me-2"></i> Tidak ada pelatihan yang cocok dengan pencarian.</td></tr>`
                         );
                     }
                 } else if (noResultsRow.length) {
                     // Jika ada hasil, sembunyikan baris 'Tidak ada data' (kecuali jika itu adalah pesan 'tidak ada data awal')
-                    noResultsRow.hide();
+                    $('#noSearchResults').hide();
+                    if (noResultsRow.find('i.bi-info-circle').length > 0) {
+                         // Hanya sembunyikan jika itu adalah pesan 'tidak ada data awal'
+                         noResultsRow.hide();
+                    }
                 }
             });
             // === END LOGIKA SEARCH BAR ===
-
-            // ... (Kode untuk Modal Detail Event) ...
 
             detailModal.addEventListener('show.bs.modal', function(event) {
                 const button = event.relatedTarget;
@@ -367,7 +375,7 @@
 
                 // 1. Update Judul Modal dan tampilkan Loading
                 modalTitle.text(eventName);
-                const loadingHtml = `<tr><td colspan="5" class="text-center"><i class="bi bi-arrow-clockwise spin me-2"></i>Memuat data...</td></tr>`;
+                const loadingHtml = `<tr><td colspan="6" class="text-center"><i class="bi bi-arrow-clockwise spin me-2"></i>Memuat data...</td></tr>`;
                 onlineBody.html(loadingHtml);
                 offlineBody.html(loadingHtml);
                 onlineCountSpan.text('0');
@@ -377,6 +385,21 @@
                 const fillTable = (body, participants, status) => {
                     body.empty();
                     if (participants.length > 0) {
+
+                        // LOGIKA PENGURUTAN (Tanggal Selesai Terbaru)
+                        participants.sort((a, b) => {
+                            const dateA = new Date(a.selesai);
+                            const dateB = new Date(b.selesai);
+                            const isValidA = !isNaN(dateA) && a.selesai;
+                            const isValidB = !isNaN(dateB) && b.selesai;
+
+                            if (!isValidA && !isValidB) return 0;
+                            if (!isValidA) return 1;
+                            if (!isValidB) return -1;
+
+                            return dateB - dateA;
+                        });
+
                         let html = '';
                         participants.forEach((p, index) => {
                             // Helper untuk format tanggal
@@ -398,6 +421,7 @@
                                     <td>${index + 1}</td>
                                     <td>${p.nik}</td>
                                     <td>${p.nama}</td>
+                                    <td>${p.unit || '-'}</td> {{-- DITAMBAHKAN --}}
                                     <td>${formatDate(p.mulai)}</td>
                                     <td>${formatDate(p.selesai)}</td>
                                 </tr>
@@ -406,7 +430,7 @@
                         body.html(html);
                     } else {
                         body.html(
-                            `<tr><td colspan="5" class="text-center text-muted">Tidak ada peserta ${status} untuk event ini.</td></tr>`
+                            `<tr><td colspan="6" class="text-center text-muted">Tidak ada peserta ${status} untuk event ini.</td></tr>` // colspan diubah
                             );
                     }
                 };
@@ -447,10 +471,10 @@
                             errorMessage = 'Error: ' + xhr.statusText;
                         }
                         onlineBody.html(
-                            `<tr><td colspan="5" class="text-center text-danger">${errorMessage}</td></tr>`
+                            `<tr><td colspan="6" class="text-center text-danger">${errorMessage}</td></tr>` // colspan diubah
                             );
                         offlineBody.html(
-                            `<tr><td colspan="5" class="text-center text-danger">${errorMessage}</td></tr>`
+                            `<tr><td colspan="6" class="text-center text-danger">${errorMessage}</td></tr>` // colspan diubah
                             );
                         onlineCountSpan.text('0');
                         offlineCountSpan.text('0');
@@ -461,7 +485,13 @@
             // Reset tab ke online saat modal ditutup
             detailModal.addEventListener('hidden.bs.modal', function() {
                 // Pastikan tab online yang aktif saat ditutup (untuk kali berikutnya)
-                bootstrap.Tab.getInstance(document.getElementById('online-tab')).show();
+                const onlineTab = document.getElementById('online-tab');
+                if (onlineTab) {
+                    const tabInstance = bootstrap.Tab.getInstance(onlineTab);
+                    if (tabInstance) {
+                        tabInstance.show();
+                    }
+                }
             });
         });
         // END LOGIKA BARU

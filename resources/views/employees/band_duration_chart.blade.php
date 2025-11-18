@@ -174,6 +174,37 @@
             });
         })();
 
+        // === PLUGIN TOTAL PER UNIT ===
+        const totalPlugin = {
+            id: "totalPlugin",
+            afterDatasetsDraw(chart) {
+                const {
+                    ctx
+                } = chart;
+                ctx.save();
+                ctx.font = "bold 16px Poppins";
+                ctx.fillStyle = "#ff0000"; // MERAH
+                ctx.textAlign = "center";
+
+                chart.data.labels.forEach((unit, i) => {
+                    let total = 0;
+                    chart.data.datasets.forEach(ds => {
+                        total += ds.data[i] ?? 0;
+                    });
+
+                    // Dapatkan metadata dari dataset terakhir yang visible (paling atas)
+                    // Asumsi: dataset terakhir adalah bar paling atas
+                    const meta = chart.getDatasetMeta(chart.data.datasets.length - 1);
+                    if (meta.data.length > i && total > 0) {
+                        const bar = meta.data[i];
+                        ctx.fillText(total, bar.x, bar.y - 25);
+                    }
+                });
+
+                ctx.restore();
+            }
+        };
+
         // === MAIN LOGIC ===
         document.addEventListener('DOMContentLoaded', function() {
 
@@ -294,6 +325,11 @@
                         },
                         options: {
                             responsive: true,
+                            layout: { // DITAMBAHKAN UNTUK MEMBERI RUANG TOTAL
+                                padding: {
+                                    top: 50
+                                }
+                            },
                             scales: {
                                 x: {
                                     stacked: true,
@@ -331,7 +367,7 @@
                                 }
                             }
                         },
-                        plugins: [ChartDataLabels]
+                        plugins: [ChartDataLabels, totalPlugin] // DITAMBAHKAN totalPlugin
                     });
 
                     // Siapkan event klik bar untuk modal detail (hanya sekali)
