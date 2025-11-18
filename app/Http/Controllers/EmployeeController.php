@@ -65,38 +65,41 @@ class EmployeeController extends Controller
 
     public function bandPositionChartData()
     {
-        // Mendapatkan semua data UNIT dan band_posisi, lalu menghitungnya
+        // Mendapatkan semua data UNIT dan band_posisi
         $data = Employee::select('UNIT', 'band_posisi', DB::raw('count(*) as count'))
-                        ->groupBy('UNIT', 'band_posisi')
                         ->where('status_eligibility', 'Eligible')
+                        ->groupBy('UNIT', 'band_posisi')
                         ->orderBy('UNIT')
                         ->orderBy('band_posisi')
                         ->get();
 
-        // Mengubah format data menjadi struktur yang lebih mudah untuk grafik
         $chartData = [];
         $units = $data->pluck('UNIT')->unique()->sort()->values();
-        $bands = ['I', 'II', 'III', 'IV', 'V', 'VI']; // Urutan band yang diinginkan
+        $bands = ['I', 'II', 'III', 'IV', 'V', 'VI'];
 
-        // Inisialisasi data dengan 0
+        // Inisialisasi data band dan total
         foreach ($units as $unit) {
             $chartData[$unit] = array_fill_keys($bands, 0);
+            $chartData[$unit]['total'] = 0; // <-- Tambahkan total
         }
 
-        // Isi data dengan hasil query
+        // Mengisi data berdasarkan band
         foreach ($data as $item) {
             if (in_array($item->band_posisi, $bands)) {
                 $chartData[$item->UNIT][$item->band_posisi] = $item->count;
+                $chartData[$item->UNIT]['total'] += $item->count; // <-- Tambah ke total
             }
         }
 
-        // Mengembalikan data dalam format JSON
+        // Kirim respons JSON termasuk total
         return response()->json([
             'units' => $units,
             'bands' => $bands,
             'data' => $chartData,
+            'totals' => $units->map(fn ($u) => $chartData[$u]['total']), // <-- total per unit
         ]);
     }
+
 
     public function ageGroupChartData()
     {
@@ -331,20 +334,34 @@ class EmployeeController extends Controller
             '> 55'    => [55, 200],
         ];
 
+        // Validasi grup usia
         if (!isset($ageRanges[$group])) {
-            return response()->json([]);
+            return response()->json([
+                'total' => 0,
+                'employees' => []
+            ]);
         }
 
         [$minAge, $maxAge] = $ageRanges[$group];
 
-        $employees = \App\Models\Employee::where('UNIT', $unit)
-            ->whereBetween('usia', [$minAge, $maxAge])
-            ->select('nama', 'usia')
+        // Query utama
+        $query = \App\Models\Employee::where('UNIT', $unit)
+            ->whereBetween('usia', [$minAge, $maxAge]);
+
+        // Ambil total
+        $total = $query->count();
+
+        // Ambil detail karyawan
+        $employees = $query->select('nama', 'usia')
             ->orderBy('nama')
             ->get();
 
-        return response()->json($employees);
+        return response()->json([
+            'total' => $total,
+            'employees' => $employees
+        ]);
     }
+
 
     public function getBandDurationDetails($unit, $group, Request $request)
     {
@@ -354,7 +371,6 @@ class EmployeeController extends Controller
             '2 - 5 Tahun'   => [24, 60],
             '5 - 10 Tahun'  => [61, 120],
             '> 10 Tahun'    => [121, 999],
-
         ];
 
         if (!isset($durationRanges[$group])) {
@@ -363,22 +379,41 @@ class EmployeeController extends Controller
 
         [$minDuration, $maxDuration] = $durationRanges[$group];
 
-        // Membangun query dasar (Filter Durasi Band dan Unit)
+        // Query dasar: filter berdasarkan Unit + Durasi
         $query = \App\Models\Employee::where('UNIT', $unit)
             ->whereBetween('lama_band_posisi', [$minDuration, $maxDuration]);
 
-        // Menerapkan Filter Band Posisi (dari query parameter)
+        // Ambil filter band posisi dari query parameter
         $selectedBands = $request->input('bands');
+
         if (!empty($selectedBands) && is_array($selectedBands)) {
             $query->whereIn('band_posisi', $selectedBands);
         }
 
+        // Ambil detail karyawan (default)
         $employees = $query->select('nama', 'lama_band_posisi', 'band_posisi', 'nik')
             ->orderBy('nama')
             ->get();
 
-        return response()->json($employees);
+        // === Tambahan: Total Per Unit (setelah filter Durasi + Band) ===
+        $totalByUnit = $query->count();
+
+        // === Tambahan: Total Per Band Posisi ===
+        $totalByBand = $query->select('band_posisi', DB::raw('COUNT(*) as total'))
+            ->groupBy('band_posisi')
+            ->pluck('total', 'band_posisi');
+
+        // === Tambahan: Total Keseluruhan ===
+        $totalOverall = $totalByBand->sum();
+
+        return response()->json([
+            'employees'      => $employees,
+            'total_by_unit'  => $totalByUnit,
+            'total_by_band'  => $totalByBand,
+            'total_overall'  => $totalOverall,
+        ]);
     }
+
 
     public function getUnitDetails($unit)
     {
@@ -457,7 +492,7 @@ class EmployeeController extends Controller
         return response()->json($unitCounts);
     }
 
-public function showTrainingInput(Request $request)
+    public function showTrainingInput(Request $request)
     {
         $search = $request->get('search');
 
@@ -603,10 +638,10 @@ public function showTrainingInput(Request $request)
     {
         // Ambil data ringkasan pelatihan per event: Nama Pelatihan, ID Event, dan jumlah partisipan unik.
         $summaries = TrainingModel::select(
-                'nama_pelatihan',
-                'id_event',
-                DB::raw('COUNT(DISTINCT employee_id) as total_participants')
-            )
+            'nama_pelatihan',
+            'id_event',
+            DB::raw('COUNT(DISTINCT employee_id) as total_participants')
+        )
             // Mengelompokkan berdasarkan nama dan id_event. Jika id_event null, mereka akan dikelompokkan bersama.
             ->groupBy('nama_pelatihan', 'id_event')
             ->orderBy('nama_pelatihan')
@@ -701,10 +736,10 @@ public function showTrainingInput(Request $request)
 
         // 1. Ambil data, hitung per bulan dan per band posisi
         $data = \App\Models\Employee::select(
-                \Illuminate\Support\Facades\DB::raw('MONTH(tgl_band_posisi) as month'),
-                'band_posisi',
-                \Illuminate\Support\Facades\DB::raw('count(*) as count')
-            )
+            \Illuminate\Support\Facades\DB::raw('MONTH(tgl_band_posisi) as month'),
+            'band_posisi',
+            \Illuminate\Support\Facades\DB::raw('count(*) as count')
+        )
             ->whereYear('tgl_band_posisi', $year)
             ->whereNotNull('band_posisi')
             // ->where('status_eligibility', 'Eligible')
@@ -728,7 +763,7 @@ public function showTrainingInput(Request $request)
 
         // 3. Ambil semua band yang muncul di data tahun ini, dan pastikan urutannya benar
         $bandsInResult = $data->pluck('band_posisi')->unique()->values()->toArray();
-        \usort($bandsInResult, fn($a, $b) => array_search($a, $allBands) <=> array_search($b, $allBands));
+        \usort($bandsInResult, fn ($a, $b) => array_search($a, $allBands) <=> array_search($b, $allBands));
 
 
         return response()->json([

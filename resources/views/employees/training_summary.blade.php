@@ -104,6 +104,12 @@
             <i class="bi bi-arrow-left me-1"></i> Kembali ke Input Pelatihan
         </a>
 
+        {{-- START: Search Bar --}}
+        <div class="mb-4">
+            <input type="text" id="searchInput" class="form-control form-control-lg" placeholder="Cari berdasarkan Nama Pelatihan atau ID Event...">
+        </div>
+        {{-- END: Search Bar --}}
+
         <div class="card shadow-sm rounded-3 border border-light-subtle">
             <div class="card-body">
                 <div class="table-responsive">
@@ -117,7 +123,7 @@
                                 <th class="text-center">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="trainingSummaryTableBody"> {{-- Tambahkan ID untuk JavaScript --}}
                             @forelse ($summaries as $summary)
                                 <tr>
                                     <td class="text-center">{{ $loop->iteration }}</td>
@@ -141,7 +147,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-4">
+                                    <td colspan="5" class="text-center text-muted py-4" id="noResultsRow">
                                         <i class="bi bi-info-circle fs-5 me-2"></i> Tidak ada data pelatihan yang tercatat untuk membuat rekap event.
                                     </td>
                                 </tr>
@@ -294,9 +300,60 @@
                 });
         });
 
-        // LOGIKA BARU: AJAX untuk Modal Detail Event
+        // LOGIKA BARU: AJAX untuk Modal Detail Event & Search
         $(document).ready(function() {
             const detailModal = document.getElementById('eventDetailModal');
+
+            // === LOGIKA SEARCH BAR ===
+            $('#searchInput').on('keyup', function() {
+                const searchText = $(this).val().toLowerCase();
+                const tableBody = $('#trainingSummaryTableBody');
+                let foundResults = 0;
+
+                // Cari semua baris data (mengabaikan baris kosong yang mungkin ada)
+                const dataRows = tableBody.find('tr').filter(function() {
+                    return $(this).find('td').length === 5; // Asumsi baris data memiliki 5 kolom
+                });
+
+                dataRows.each(function() {
+                    const row = $(this);
+                    // Ambil teks dari kolom Nama Pelatihan (index 1) dan ID Event (index 2)
+                    // .eq(0) adalah kolom #, .eq(1) adalah Nama Pelatihan, .eq(2) adalah ID Event
+                    const eventName = row.find('td').eq(1).text().toLowerCase();
+                    const eventId = row.find('td').eq(2).text().toLowerCase();
+
+                    // Cek apakah ada kecocokan
+                    if (eventName.includes(searchText) || eventId.includes(searchText)) {
+                        row.show();
+                        foundResults++;
+                    } else {
+                        row.hide();
+                    }
+                });
+
+                // Jika tidak ada hasil dan tabel tidak kosong, tampilkan pesan 'tidak ada data'
+                const noResultsRow = $('#noResultsRow');
+
+                if (foundResults === 0 && tableBody.find('tr').length > 0) {
+                    // Cek apakah baris "Tidak ada data" (yang mungkin tersembunyi) ada di DOM
+                    if (noResultsRow.length) {
+                        noResultsRow.show();
+                        noResultsRow.find('td').html('<i class="bi bi-exclamation-circle fs-5 me-2"></i> Tidak ada pelatihan yang cocok dengan pencarian.');
+                    } else {
+                        // Jika baris awal 'Tidak ada data' dihapus, tambahkan baris sementara
+                        // Catatan: Ini harusnya tidak terjadi jika ada data awal
+                        tableBody.append(
+                            `<tr><td colspan="5" class="text-center text-muted py-4" id="noSearchResults"><i class="bi bi-exclamation-circle fs-5 me-2"></i> Tidak ada pelatihan yang cocok dengan pencarian.</td></tr>`
+                        );
+                    }
+                } else if (noResultsRow.length) {
+                    // Jika ada hasil, sembunyikan baris 'Tidak ada data' (kecuali jika itu adalah pesan 'tidak ada data awal')
+                    noResultsRow.hide();
+                }
+            });
+            // === END LOGIKA SEARCH BAR ===
+
+            // ... (Kode untuk Modal Detail Event) ...
 
             detailModal.addEventListener('show.bs.modal', function(event) {
                 const button = event.relatedTarget;

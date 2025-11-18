@@ -35,7 +35,8 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {{ Request::routeIs('employees.band_position_monthly_chart') ? 'active' : '' }}"
-                            href="{{ route('employees.band_position_monthly_chart') }}"><i class="bi bi-calendar-check-fill me-1"></i> Promosi Band Posisi Bulanan</a>
+                            href="{{ route('employees.band_position_monthly_chart') }}"><i
+                                class="bi bi-calendar-check-fill me-1"></i> Promosi Band Posisi Bulanan</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {{ Request::routeIs('employees.age_group_chart') ? 'active' : '' }}"
@@ -174,19 +175,19 @@
                             modalBody.innerHTML = `
                                 <ul class="list-group">
                                     ${employees.map(emp => `
-                                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <strong>${emp.nama}</strong><br>
-                                                        <small class="text-muted">${emp.nama_posisi || 'Posisi Tidak Ada'}</small>
-                                                    </div>
-                                                    <div class="d-flex flex-column align-items-end">
-                                                        <span class="badge bg-info text-dark mb-1">Band ${emp.band_posisi || 'N/A'}</span>
-                                                        <span class="badge ${emp.status_eligibility === 'Eligible' ? 'bg-success' :
-                                                            emp.status_eligibility === 'Not Eligible' ? 'bg-danger' : 'bg-secondary'}">
-                                                            ${emp.status_eligibility || 'N/A'}
-                                                        </span>
-                                                    </div>
-                                                </li>`).join('')}
+                                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                    <div>
+                                                                        <strong>${emp.nama}</strong><br>
+                                                                        <small class="text-muted">${emp.nama_posisi || 'Posisi Tidak Ada'}</small>
+                                                                    </div>
+                                                                    <div class="d-flex flex-column align-items-end">
+                                                                        <span class="badge bg-info text-dark mb-1">Band ${emp.band_posisi || 'N/A'}</span>
+                                                                        <span class="badge ${emp.status_eligibility === 'Eligible' ? 'bg-success' :
+                                                                            emp.status_eligibility === 'Not Eligible' ? 'bg-danger' : 'bg-secondary'}">
+                                                                            ${emp.status_eligibility || 'N/A'}
+                                                                        </span>
+                                                                    </div>
+                                                                </li>`).join('')}
                                 </ul>`;
                         } else {
                             modalBody.innerHTML =
@@ -247,6 +248,7 @@
                                 y: {
                                     stacked: true,
                                     beginAtZero: true,
+                                    max: null, // akan diisi otomatis di bawah
                                     title: {
                                         display: true,
                                         text: 'Jumlah Karyawan'
@@ -277,7 +279,52 @@
                                 }
                             }
                         },
-                        plugins: [ChartDataLabels]
+
+                        plugins: [
+                            // ⭐ PLUGIN UNTUK MENAMPILKAN TOTAL DI ATAS STACK ⭐
+                            {
+                                id: 'unitTotals',
+                                afterDatasetsDraw(chart) {
+                                    const ctx = chart.ctx;
+                                    ctx.save();
+                                    ctx.font = "bold 14px Poppins";
+                                    ctx.fillStyle = '#ff0000';
+                                    ctx.textAlign = "center";
+
+                                    let maxValue = 0;
+
+                                    chart.data.labels.forEach((_, index) => {
+
+                                        // Hitung total per unit
+                                        const total = chart.data.datasets.reduce((sum,
+                                            ds) => sum + ds.data[index], 0);
+                                        if (total > maxValue) maxValue = total;
+
+                                        // Cari titik paling atas (bar teratas)
+                                        let topY = Infinity;
+                                        chart.data.datasets.forEach((ds, dsIndex) => {
+                                            const meta = chart.getDatasetMeta(
+                                                dsIndex);
+                                            const bar = meta.data[index];
+
+                                            if (bar && bar.y < topY) {
+                                                topY = bar.y;
+                                            }
+                                        });
+
+                                        // Tampilkan total
+                                        ctx.fillText(total, chart.scales.x.getPixelForValue(
+                                            index), topY - 8);
+                                    });
+
+                                    // Update max Y agar ada ruang di atas bar
+                                    chart.options.scales.y.max = maxValue + 2;
+
+                                    ctx.restore();
+                                }
+                            },
+                            ChartDataLabels
+                        ]
                     });
 
                     // === KLIK BAR CHART untuk Detail Karyawan (BAND SPESIFIK) - LOGIKA ASLI DIPERTAHANKAN ===
@@ -311,24 +358,24 @@
                                     modalBody.innerHTML = `
                                         <ul class="list-group justify-content-between">
                                             ${employees.map(emp => `
-                                                            <li class="list-group-item d-flex justify-content-between">
-                                                                <div class="d-flex flex-column">
-                                                                    <span class="fw-semibold">${emp.nama}</span>
-                                                                    <small class="text-muted">${emp.nama_posisi}</small>
-                                                                </div>
-                                                                 <div class="d-flex align-items-center gap-2">
-                                                                    <span class="badge bg-primary">Band ${emp.band_posisi || 'N/A'}</span>
-                                                                    <span class="badge ${
-                                                                        emp.status_eligibility === 'Eligible'
-                                                                            ? 'bg-success'
-                                                                            : emp.status_eligibility === 'Not Eligible'
-                                                                            ? 'bg-danger'
-                                                                            : 'bg-secondary'
-                                                                    }">
-                                                                        ${emp.status_eligibility || 'N/A'}
-                                                                    </span>
-                                                                </div>
-                                                            </li>`).join('')}
+                                                                            <li class="list-group-item d-flex justify-content-between">
+                                                                                <div class="d-flex flex-column">
+                                                                                    <span class="fw-semibold">${emp.nama}</span>
+                                                                                    <small class="text-muted">${emp.nama_posisi}</small>
+                                                                                </div>
+                                                                                 <div class="d-flex align-items-center gap-2">
+                                                                                    <span class="badge bg-primary">Band ${emp.band_posisi || 'N/A'}</span>
+                                                                                    <span class="badge ${
+                                                                                        emp.status_eligibility === 'Eligible'
+                                                                                            ? 'bg-success'
+                                                                                            : emp.status_eligibility === 'Not Eligible'
+                                                                                            ? 'bg-danger'
+                                                                                            : 'bg-secondary'
+                                                                                    }">
+                                                                                        ${emp.status_eligibility || 'N/A'}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </li>`).join('')}
                                         </ul>`;
                                 } else {
                                     modalBody.innerHTML =
@@ -370,8 +417,34 @@
                         });
                     });
 
-                    // === TOMBOL UNIT ===
+                    // === TOMBOL UNIT DENGAN TOTAL KESELURUHAN ===
+
+                    // 1. Hitung Total Keseluruhan Karyawan
+                    const grandTotalEmployees = Object.values(allUnitCounts).reduce((sum, count) => sum + count,
+                        0);
+
                     unitButtonContainer.innerHTML = '';
+
+                    // 2. Tambahkan tombol/item untuk Total Keseluruhan
+                    const totalItem = document.createElement('button');
+                    totalItem.className =
+                        'list-group-item d-flex justify-content-between align-items-center bg-primary text-white fw-bold';
+                    totalItem.setAttribute('type', 'button');
+                    // Menggunakan toLocaleString untuk format angka agar ada pemisah ribuan
+                    totalItem.innerHTML =
+                        `Total Semua Karyawan<span class="badge bg-light text-primary rounded-pill">${grandTotalEmployees.toLocaleString('id-ID')}</span>`;
+
+                    // Event klik untuk total (dapat disesuaikan)
+                    totalItem.addEventListener('click', () => {
+                        alert(
+                            `Total Karyawan Keseluruhan: ${grandTotalEmployees.toLocaleString('id-ID')} orang dari semua unit.`
+                        );
+                    });
+
+                    // Masukkan Total Item ke dalam container sebagai item pertama
+                    unitButtonContainer.appendChild(totalItem);
+
+                    // 3. Iterasi dan tambahkan tombol/item untuk setiap Unit
                     Object.keys(allUnitCounts).forEach(unit => {
                         const totalEmployees = allUnitCounts[unit] || 0;
                         const button = document.createElement('button');
